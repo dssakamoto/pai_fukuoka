@@ -1,0 +1,1156 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SO-101 要件定義書</title>
+<meta name="description" content="言葉の指示で SO-101 がブロックを片付ける課題の要件定義書(v1 シミュレーション / v2 実機)">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Zen+Kaku+Gothic+New:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f5f1e8;
+  --paper-2: #ece6d8;
+  --card: #fffdf8;
+  --ink: #1b2230;
+  --ink-2: #3a4354;
+  --muted: #6a7282;
+  --line: #d8d0bf;
+  --grid: rgba(27, 34, 48, 0.06);
+  --accent: #e0662b;
+  --accent-soft: #fbe3d6;
+  --v1: #0d7f81;
+  --v1-soft: #d5eeee;
+  --v2: #6a4fc4;
+  --v2-soft: #e6e0f8;
+  --ok: #2c8a52;
+  --ng: #c2413b;
+  --warn: #b98000;
+  --robot: #2b3446;
+  --robot-joint: #e0662b;
+  --block-red: #d9473f;
+  --block-blue: #3b6fd1;
+  --block-green: #3c9a5a;
+  --box: #a8793f;
+  --shadow: 0 1px 0 rgba(27, 34, 48, 0.06), 0 10px 30px -12px rgba(27, 34, 48, 0.25);
+
+  --font-body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --text-sm: 0.875rem;
+  --text-base: clamp(0.98rem, 0.94rem + 0.2vw, 1.06rem);
+  --text-lg: clamp(1.15rem, 1.05rem + 0.5vw, 1.35rem);
+  --text-h2: clamp(1.7rem, 1.2rem + 2.2vw, 2.7rem);
+  --text-hero: clamp(2.4rem, 1.2rem + 5.6vw, 5.4rem);
+
+  --space-gutter: 16px;
+  --space-section: clamp(3.5rem, 2.5rem + 4vw, 7rem);
+  --radius-s: 6px;
+  --radius-m: 14px;
+  --radius-l: 22px;
+
+  --duration-fast: 150ms;
+  --duration-normal: 320ms;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #11151b; --paper-2: #171c24; --card: #1b212b;
+    --ink: #ece7dc; --ink-2: #cdc7ba; --muted: #9aa1ad; --line: #2e3542;
+    --grid: rgba(236, 231, 220, 0.05);
+    --accent: #f08048; --accent-soft: #3a2519;
+    --v1: #3cc2c2; --v1-soft: #12302f; --v2: #a08cf0; --v2-soft: #261f3d;
+    --ok: #4cc27c; --ng: #ef6a62; --warn: #e2b23f;
+    --robot: #c9d1de; --box: #c89a5c;
+    --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 14px 34px -14px rgba(0, 0, 0, 0.7);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #11151b; --paper-2: #171c24; --card: #1b212b;
+  --ink: #ece7dc; --ink-2: #cdc7ba; --muted: #9aa1ad; --line: #2e3542;
+  --grid: rgba(236, 231, 220, 0.05);
+  --accent: #f08048; --accent-soft: #3a2519;
+  --v1: #3cc2c2; --v1-soft: #12302f; --v2: #a08cf0; --v2-soft: #261f3d;
+  --ok: #4cc27c; --ng: #ef6a62; --warn: #e2b23f;
+  --robot: #c9d1de; --box: #c89a5c;
+  --shadow: 0 1px 0 rgba(0, 0, 0, 0.3), 0 14px 34px -14px rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.75;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+code, .mono { font-family: var(--font-mono); font-size: 0.88em; }
+code { background: var(--paper-2); padding: 0.08em 0.38em; border-radius: 4px; word-break: break-word; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+
+.wrap { width: min(1160px, 100% - 2 * var(--space-gutter)); margin-inline: auto; }
+
+/* ---------- top nav ---------- */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.topbar .wrap { display: flex; align-items: center; gap: 1rem; min-height: 56px; }
+.brand { font-weight: 900; letter-spacing: 0.02em; white-space: nowrap; font-size: 0.95rem; }
+.brand span { color: var(--accent); }
+.toc { display: flex; gap: 0.25rem; overflow-x: auto; scrollbar-width: none; flex: 1; }
+.toc::-webkit-scrollbar { display: none; }
+.toc a {
+  text-decoration: none; font-size: var(--text-sm); color: var(--ink-2);
+  padding: 0.3rem 0.7rem; border-radius: 999px; white-space: nowrap;
+  transition: background var(--duration-fast), color var(--duration-fast);
+}
+.toc a:hover { background: var(--paper-2); color: var(--ink); }
+.toc a.is-current { background: var(--ink); color: var(--paper); }
+.theme-btn {
+  border: 1px solid var(--line); background: var(--card); color: var(--ink);
+  border-radius: 999px; width: 38px; height: 38px; cursor: pointer; flex: none;
+}
+
+/* ---------- hero ---------- */
+.hero {
+  position: relative;
+  padding: clamp(2.5rem, 2rem + 4vw, 6rem) 0 var(--space-section);
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 28px 28px;
+  border-bottom: 1px solid var(--line);
+}
+.hero-grid { display: grid; grid-template-columns: 1.05fr 1fr; gap: clamp(1.5rem, 1rem + 3vw, 4rem); align-items: center; }
+.eyebrow {
+  display: inline-flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;
+  font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted);
+}
+.eyebrow .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.hero h1 { font-size: var(--text-hero); line-height: 1.05; margin: 0.6rem 0 1rem; font-weight: 900; letter-spacing: -0.02em; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.nw { display: inline-block; white-space: nowrap; }
+.hero .lead { font-size: var(--text-lg); color: var(--ink-2); max-width: 34em; margin: 0 0 1.6rem; }
+.meta-row { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  font-size: var(--text-sm); padding: 0.2rem 0.7rem; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+}
+.chip.v1 { border-color: var(--v1); color: var(--v1); background: var(--v1-soft); }
+.chip.v2 { border-color: var(--v2); color: var(--v2); background: var(--v2-soft); }
+.chip.accent { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+
+.stage {
+  position: relative; background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius-l); box-shadow: var(--shadow); padding: 0.8rem 0.8rem 1rem;
+  transform: rotate(-0.6deg);
+}
+.stage svg { display: block; width: 100%; height: auto; }
+.stage-caption { display: flex; align-items: center; gap: 0.7rem; padding: 0.2rem 0.4rem 0; }
+.stage-steps { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; flex: 1; }
+.stage-steps li { flex: 1; height: 5px; border-radius: 3px; background: var(--paper-2); position: relative; overflow: hidden; }
+.stage-steps li.is-on { background: var(--accent); }
+.stage-steps li.is-done { background: color-mix(in srgb, var(--accent) 45%, var(--paper-2)); }
+.stage-text { min-height: 2.6em; margin: 0.5rem 0.4rem 0; font-weight: 700; }
+.stage-text small { display: block; font-weight: 400; color: var(--muted); font-size: var(--text-sm); }
+.icon-btn {
+  border: 1px solid var(--line); background: var(--paper); color: var(--ink); cursor: pointer;
+  border-radius: 999px; padding: 0.25rem 0.8rem; font: inherit; font-size: var(--text-sm);
+  transition: background var(--duration-fast), transform var(--duration-fast);
+}
+.icon-btn:hover { background: var(--paper-2); }
+.icon-btn:active { transform: scale(0.96); }
+
+/* ---------- sections ---------- */
+section.block { padding: var(--space-section) 0 0; }
+.sec-head { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 1.2rem; align-items: baseline; margin-bottom: 1.6rem; }
+.sec-no { font-family: var(--font-mono); color: var(--accent); font-size: 0.9rem; grid-row: span 2; padding-top: 0.9rem; }
+.sec-head h2 { font-size: var(--text-h2); line-height: 1.15; margin: 0; font-weight: 900; letter-spacing: -0.01em; }
+.sec-head p { margin: 0; color: var(--muted); }
+h3 { font-size: var(--text-lg); margin: 2rem 0 0.8rem; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 1.2rem 1.3rem; box-shadow: var(--shadow); }
+.note {
+  border-left: 4px solid var(--warn); background: color-mix(in srgb, var(--warn) 9%, var(--card));
+  padding: 0.7rem 1rem; border-radius: 0 var(--radius-s) var(--radius-s) 0; font-size: var(--text-sm); color: var(--ink-2);
+}
+
+/* three-answer strip */
+.answers { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 1rem; }
+.answer { position: relative; overflow: hidden; }
+.answer .q { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); letter-spacing: 0.06em; }
+.answer .a { font-size: 1.25rem; font-weight: 900; margin: 0.2rem 0 0.4rem; line-height: 1.4; }
+.answer p { margin: 0; color: var(--ink-2); font-size: var(--text-sm); }
+.answer.big { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.answer.big .q, .answer.big p { color: color-mix(in srgb, var(--paper) 75%, transparent); }
+.date-list { list-style: none; padding: 0; margin: 0.4rem 0 0; display: grid; gap: 0.3rem; }
+.date-list li { display: flex; justify-content: space-between; gap: 1rem; border-bottom: 1px dashed var(--line); font-size: var(--text-sm); }
+.date-list b { font-family: var(--font-mono); }
+
+/* v1 v2 compare */
+.versions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+.version { border-top: 6px solid var(--v1); }
+.version.v2 { border-top-color: var(--v2); }
+.version h3 { margin: 0 0 0.3rem; display: flex; gap: 0.6rem; align-items: baseline; flex-wrap: wrap; }
+.version h3 .tag { font-family: var(--font-mono); font-size: 0.8rem; color: var(--v1); }
+.version.v2 h3 .tag { color: var(--v2); }
+.version ul { margin: 0.4rem 0 0; padding-left: 1.2rem; }
+.version .when { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--muted); }
+
+/* scope */
+.scope { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.scope ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.45rem; }
+.scope li { display: grid; grid-template-columns: 1.4rem 1fr; gap: 0.3rem; }
+.scope .in li::before { content: "✓"; color: var(--ok); font-weight: 900; }
+.scope .out li::before { content: "—"; color: var(--muted); font-weight: 900; }
+
+/* glossary */
+.glossary { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0.8rem; }
+.term { padding: 1rem 1.1rem; transition: transform var(--duration-normal) var(--ease-out-expo), box-shadow var(--duration-normal); }
+.term:hover { transform: translateY(-3px); }
+.term dt { font-weight: 900; font-size: 1.05rem; display: flex; gap: 0.5rem; align-items: baseline; flex-wrap: wrap; }
+.term dt small { font-weight: 400; color: var(--muted); font-size: 0.78rem; }
+.term dd { margin: 0.3rem 0 0; font-size: var(--text-sm); color: var(--ink-2); }
+.term .role { display: block; margin-top: 0.4rem; color: var(--accent); font-weight: 700; }
+
+/* pipeline */
+.pipe-controls { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin-bottom: 1rem; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 3px; background: var(--card); }
+.seg button {
+  border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: var(--text-sm);
+  padding: 0.3rem 0.9rem; border-radius: 999px; cursor: pointer; transition: background var(--duration-fast), color var(--duration-fast);
+}
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.seg button.v2-btn[aria-pressed="true"] { background: var(--v2); color: #fff; }
+.seg button.v1-btn[aria-pressed="true"] { background: var(--v1); color: #fff; }
+.pipe { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(8, 1fr); gap: 0.5rem; counter-reset: node; }
+.pipe li {
+  position: relative; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-m);
+  padding: 0.7rem 0.6rem; min-height: 112px; cursor: pointer;
+  transition: transform var(--duration-normal) var(--ease-out-expo), opacity var(--duration-normal), border-color var(--duration-fast), background var(--duration-fast);
+}
+.pipe li::after {
+  content: "→"; position: absolute; right: -0.55rem; top: 50%; transform: translateY(-50%);
+  color: var(--muted); font-size: 0.85rem; z-index: 1;
+}
+.pipe li:last-child::after { content: none; }
+.pipe .n { font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); }
+.pipe .t { display: block; font-weight: 900; font-size: 0.95rem; line-height: 1.3; margin: 0.15rem 0; }
+.pipe .s { display: block; font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+.pipe li.is-done { border-color: color-mix(in srgb, var(--accent) 40%, var(--line)); }
+.pipe li.is-active { border-color: var(--accent); background: var(--accent-soft); transform: translateY(-6px); box-shadow: var(--shadow); }
+.pipe li.is-skipped { opacity: 0.32; }
+.pipe li.is-skipped .t { text-decoration: line-through; }
+.pipe li.is-v2 { border-color: var(--v2); }
+.pipe li.is-v2.is-active { background: var(--v2-soft); }
+.pipe-detail { margin-top: 1rem; display: grid; grid-template-columns: 1fr 1.1fr; gap: 1rem; }
+.pipe-detail h3 { margin: 0 0 0.3rem; }
+.pipe-detail .io { display: grid; grid-template-columns: auto 1fr; gap: 0.2rem 0.8rem; font-size: var(--text-sm); }
+.pipe-detail .io dt { color: var(--muted); }
+.pipe-detail .io dd { margin: 0; }
+.pipe-detail pre {
+  margin: 0; background: #1b2230; color: #ece7dc; border: 1px solid var(--line); border-radius: var(--radius-m); padding: 1rem; overflow-x: auto;
+  font-family: var(--font-mono); font-size: 0.8rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word;
+}
+.fade-swap { animation: swap var(--duration-normal) var(--ease-out-expo); }
+@keyframes swap { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* figure blocks */
+.figure-row { display: grid; grid-template-columns: 1.15fr 1fr; gap: 1.2rem; align-items: start; }
+.figure svg { width: 100%; height: auto; display: block; }
+.steps { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.6rem; counter-reset: st; }
+.steps li {
+  display: grid; grid-template-columns: 2rem 1fr; gap: 0.6rem; padding: 0.7rem 0.8rem; border-radius: var(--radius-m);
+  border: 1px solid transparent; transition: background var(--duration-normal), border-color var(--duration-normal), opacity var(--duration-normal);
+  opacity: 0.55; cursor: pointer;
+}
+.steps li::before {
+  counter-increment: st; content: counter(st); width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--paper-2); font-family: var(--font-mono); font-weight: 700;
+}
+.steps li.is-on { opacity: 1; background: var(--card); border-color: var(--line); box-shadow: var(--shadow); }
+.steps li.is-on::before { background: var(--accent); color: #fff; }
+.steps b { display: block; }
+.steps span { font-size: var(--text-sm); color: var(--ink-2); }
+
+.reveal { opacity: 0; transition: opacity 0.5s var(--ease-out-expo), transform 0.5s var(--ease-out-expo); }
+.reveal.from-y { transform: translateY(10px); }
+.reveal.is-on { opacity: 1; transform: none; }
+
+/* provider tabs */
+.tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 0.8rem; }
+.tabs [role="tab"] {
+  font: inherit; font-size: var(--text-sm); border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  border-radius: 999px; padding: 0.35rem 0.9rem; cursor: pointer; transition: background var(--duration-fast), color var(--duration-fast), transform var(--duration-fast);
+}
+.tabs [role="tab"]:hover { transform: translateY(-1px); }
+.tabs [role="tab"][aria-selected="true"] { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+.conv { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.8rem; align-items: center; }
+.conv pre {
+  margin: 0; background: var(--paper-2); border-radius: var(--radius-s); padding: 0.8rem; font-family: var(--font-mono);
+  font-size: 0.78rem; white-space: pre-wrap; word-break: break-word; min-height: 7.5em;
+}
+.conv .arrow { font-size: 1.6rem; color: var(--accent); animation: nudge 1.6s ease-in-out infinite; }
+@keyframes nudge { 50% { transform: translateX(5px); } }
+.conv-label { font-size: 0.75rem; color: var(--muted); font-family: var(--font-mono); margin-bottom: 0.25rem; }
+
+/* judge */
+.judge { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; align-items: center; }
+.judge svg .jblock { transition: transform 0.7s var(--ease-out-expo); }
+.judge svg .motion-lines { transition: opacity var(--duration-normal); opacity: 0; }
+.judge svg.moving .motion-lines { opacity: 1; animation: wobble 0.5s ease-in-out infinite; }
+@keyframes wobble { 50% { transform: translateX(3px); } }
+.conds { list-style: none; padding: 0; margin: 0.8rem 0; display: grid; gap: 0.5rem; }
+.conds li {
+  display: grid; grid-template-columns: 2rem 1fr; gap: 0.5rem; align-items: center; padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line); border-radius: var(--radius-s); background: var(--card);
+}
+.conds .mark {
+  width: 2rem; height: 2rem; border-radius: 50%; display: grid; place-items: center; font-weight: 900; color: #fff;
+  background: var(--muted); transition: transform var(--duration-normal) var(--ease-out-expo), background var(--duration-fast);
+}
+.conds li.ok .mark { background: var(--ok); }
+.conds li.ng .mark { background: var(--ng); }
+.conds li.pop .mark { animation: pop 0.45s var(--ease-out-expo); }
+@keyframes pop { from { transform: scale(0.4); } to { transform: scale(1); } }
+.verdict { font-size: 1.4rem; font-weight: 900; }
+.verdict.ok { color: var(--ok); }
+.verdict.ng { color: var(--ng); }
+
+/* safety */
+.safety { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.8rem; }
+.safety .card { position: relative; padding-top: 2.6rem; }
+.safety .ico {
+  position: absolute; top: -1rem; left: 1rem; width: 2.8rem; height: 2.8rem; border-radius: 12px; display: grid; place-items: center;
+  background: var(--ink); color: var(--paper); font-size: 1.3rem; box-shadow: var(--shadow);
+}
+.safety h3 { margin: 0 0 0.3rem; font-size: 1rem; }
+.safety p { margin: 0; font-size: var(--text-sm); color: var(--ink-2); }
+
+/* tables */
+.tbl-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--card); }
+table { border-collapse: collapse; width: 100%; font-size: var(--text-sm); }
+th, td { text-align: left; vertical-align: top; padding: 0.6rem 0.8rem; border-bottom: 1px solid var(--line); }
+th { background: var(--paper-2); font-weight: 700; white-space: nowrap; position: sticky; top: 0; }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-family: var(--font-mono); white-space: nowrap; font-weight: 700; }
+tbody tr { transition: background var(--duration-fast); }
+tbody tr:hover { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+td.plain, th.plain { font-family: var(--font-body); white-space: normal; }
+.tasks-tbl td:nth-child(3) { white-space: nowrap; }
+.tasks-tbl td:nth-child(2) { min-width: 16rem; }
+
+details.fold { border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--card); margin-bottom: 0.7rem; overflow: hidden; }
+details.fold > summary {
+  list-style: none; cursor: pointer; padding: 0.9rem 1.1rem; display: flex; gap: 0.8rem; align-items: center; flex-wrap: wrap; font-weight: 700;
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary::before { content: "＋"; font-family: var(--font-mono); color: var(--accent); transition: transform var(--duration-normal); }
+details.fold[open] > summary::before { transform: rotate(45deg); }
+details.fold > summary .count { margin-left: auto; font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); font-weight: 400; }
+details.fold .tbl-wrap { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+details.fold .body { padding: 0 1.1rem 1rem; }
+.phase-tag { font-family: var(--font-mono); font-size: 0.72rem; padding: 0.05rem 0.5rem; border-radius: 999px; color: #fff; background: var(--v1); }
+.phase-tag.v2 { background: var(--v2); }
+.phase-tag.sub { background: var(--accent); }
+tr.ms td { background: color-mix(in srgb, var(--accent) 10%, transparent); font-weight: 700; }
+
+.filter { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-bottom: 1rem; }
+.hidden { display: none !important; }
+
+/* gantt */
+.gantt { position: relative; padding: 3.2rem 1rem 1.8rem; }
+.g-axis { position: relative; height: 1.6rem; margin-left: var(--g-label); border-bottom: 1px solid var(--line); }
+.g-axis span { position: absolute; transform: translateX(-50%); font-family: var(--font-mono); font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+.g-rows { position: relative; }
+.g-row { display: grid; grid-template-columns: var(--g-label) 1fr; align-items: center; min-height: 2.6rem; border-bottom: 1px dashed var(--line); }
+.g-row .lbl { font-size: 0.8rem; padding-right: 0.6rem; line-height: 1.35; color: var(--ink-2); }
+.g-track { position: relative; height: 100%; min-height: 2.6rem; }
+.g-bar {
+  position: absolute; top: 50%; height: 1.3rem; margin-top: -0.65rem; border-radius: 6px; background: var(--v1);
+  transform-origin: left center; transform: scaleX(0); transition: transform 0.9s var(--ease-out-expo);
+}
+.g-bar.v2 { background: var(--v2); }
+.g-bar.sub { background: var(--accent); }
+.gantt.is-on .g-bar { transform: scaleX(1); }
+.g-ms-layer { position: absolute; inset: 0 0 0 var(--g-label); pointer-events: none; }
+.g-ms { position: absolute; top: -0.4rem; bottom: 0; width: 0; border-left: 2px dashed var(--muted); opacity: 0; transition: opacity 0.6s; }
+.gantt.is-on .g-ms { opacity: 1; }
+.g-ms.key { border-left-color: var(--accent); border-left-style: solid; }
+.g-ms b {
+  position: absolute; top: -3.1rem; left: 0; transform: translateX(-50%); white-space: nowrap; font-size: 0.7rem;
+  background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 0 0.45rem; font-family: var(--font-mono);
+}
+.g-ms.key b { background: var(--accent); color: #fff; border-color: var(--accent); }
+.g-today { position: absolute; top: 0; bottom: 0; width: 0; border-left: 2px solid var(--ng); }
+.g-today i { position: absolute; bottom: -1.3rem; left: 0; transform: translateX(-50%); font-style: normal; font-size: 0.68rem; color: var(--ng); white-space: nowrap; }
+.ms-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.6rem; margin-top: 1.4rem; }
+.ms-card { padding: 0.8rem 0.9rem; }
+.ms-card .d { font-family: var(--font-mono); font-size: 0.8rem; color: var(--muted); }
+.ms-card .k { font-weight: 900; }
+.ms-card.key { border-color: var(--accent); background: var(--accent-soft); }
+.ms-card p { margin: 0.2rem 0 0; font-size: 0.78rem; color: var(--ink-2); line-height: 1.5; }
+
+.list-plain { margin: 0; padding-left: 1.2rem; }
+.list-plain li { margin: 0.2rem 0; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+
+footer { margin-top: var(--space-section); padding: 2rem 0 3rem; border-top: 1px solid var(--line); color: var(--muted); font-size: var(--text-sm); }
+
+/* hero svg classes */
+.h-link { fill: var(--robot); }
+.h-joint { fill: var(--robot-joint); }
+.h-joint-in { fill: var(--card); }
+.h-table { fill: var(--paper-2); stroke: var(--line); }
+.h-box { fill: var(--box); }
+.h-label { font-family: var(--font-mono); font-size: 11px; fill: var(--accent); }
+.h-text { font-family: var(--font-body); font-size: 14px; font-weight: 700; fill: var(--ink); }
+.h-bubble { fill: var(--card); stroke: var(--ink); stroke-width: 1.5; }
+.h-bbox { fill: none; stroke: var(--accent); stroke-width: 2; stroke-dasharray: 5 3; }
+.h-cam { fill: var(--ink); }
+.h-ok { fill: var(--ok); }
+
+/* responsive */
+@media (max-width: 960px) {
+  .hero-grid, .figure-row, .judge, .pipe-detail, .two-col, .versions, .scope { grid-template-columns: 1fr; }
+  .answers { grid-template-columns: 1fr; }
+  .pipe { grid-template-columns: repeat(4, 1fr); }
+  .pipe li:nth-child(4n)::after { content: none; }
+  .safety { grid-template-columns: repeat(2, 1fr); row-gap: 1.6rem; }
+  .ms-cards { grid-template-columns: repeat(2, 1fr); }
+  .stage { transform: none; }
+}
+@media (max-width: 560px) {
+  .pipe { grid-template-columns: repeat(2, 1fr); }
+  .pipe li:nth-child(2n)::after { content: none; }
+  .safety { grid-template-columns: 1fr; }
+  .conv { grid-template-columns: 1fr; }
+  .conv .arrow { transform: rotate(90deg); justify-self: center; animation: none; }
+  .ms-cards { grid-template-columns: 1fr; }
+  .sec-head { grid-template-columns: 1fr; }
+  .sec-no { grid-row: auto; padding-top: 0; }
+  .gantt { --g-label: 5.5rem !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+  .reveal { opacity: 1; transform: none; }
+  .g-bar { transform: scaleX(1); }
+  .g-ms { opacity: 1; }
+}
+@keyframes h-j1{0%{transform:rotate(-112.08deg)}1%{transform:rotate(-112.08deg)}2%{transform:rotate(-112.08deg)}3%{transform:rotate(-112.08deg)}4%{transform:rotate(-112.08deg)}5%{transform:rotate(-112.08deg)}6%{transform:rotate(-112.08deg)}7%{transform:rotate(-112.08deg)}8%{transform:rotate(-112.08deg)}9%{transform:rotate(-112.08deg)}10%{transform:rotate(-112.08deg)}11%{transform:rotate(-112.08deg)}12%{transform:rotate(-112.08deg)}13%{transform:rotate(-112.08deg)}14%{transform:rotate(-112.08deg)}15%{transform:rotate(-112.08deg)}16%{transform:rotate(-112.08deg)}17%{transform:rotate(-112.08deg)}18%{transform:rotate(-112.08deg)}19%{transform:rotate(-111.40deg)}20%{transform:rotate(-109.49deg)}21%{transform:rotate(-106.62deg)}22%{transform:rotate(-103.02deg)}23%{transform:rotate(-98.93deg)}24%{transform:rotate(-94.60deg)}25%{transform:rotate(-90.27deg)}26%{transform:rotate(-86.18deg)}27%{transform:rotate(-82.58deg)}28%{transform:rotate(-79.71deg)}29%{transform:rotate(-77.81deg)}30%{transform:rotate(-77.12deg)}31%{transform:rotate(-75.03deg)}32%{transform:rotate(-69.83deg)}33%{transform:rotate(-63.05deg)}34%{transform:rotate(-56.28deg)}35%{transform:rotate(-51.07deg)}36%{transform:rotate(-48.99deg)}37%{transform:rotate(-48.99deg)}38%{transform:rotate(-48.99deg)}39%{transform:rotate(-48.99deg)}40%{transform:rotate(-48.99deg)}41%{transform:rotate(-51.07deg)}42%{transform:rotate(-56.28deg)}43%{transform:rotate(-63.05deg)}44%{transform:rotate(-69.83deg)}45%{transform:rotate(-75.03deg)}46%{transform:rotate(-77.12deg)}47%{transform:rotate(-76.50deg)}48%{transform:rotate(-74.78deg)}49%{transform:rotate(-72.13deg)}50%{transform:rotate(-68.75deg)}51%{transform:rotate(-64.81deg)}52%{transform:rotate(-60.50deg)}53%{transform:rotate(-56.00deg)}54%{transform:rotate(-51.51deg)}55%{transform:rotate(-47.20deg)}56%{transform:rotate(-43.26deg)}57%{transform:rotate(-39.87deg)}58%{transform:rotate(-37.23deg)}59%{transform:rotate(-35.50deg)}60%{transform:rotate(-34.89deg)}61%{transform:rotate(-33.88deg)}62%{transform:rotate(-31.35deg)}63%{transform:rotate(-28.06deg)}64%{transform:rotate(-24.77deg)}65%{transform:rotate(-22.24deg)}66%{transform:rotate(-21.23deg)}67%{transform:rotate(-21.23deg)}68%{transform:rotate(-21.23deg)}69%{transform:rotate(-21.23deg)}70%{transform:rotate(-21.23deg)}71%{transform:rotate(-22.24deg)}72%{transform:rotate(-24.77deg)}73%{transform:rotate(-28.06deg)}74%{transform:rotate(-31.35deg)}75%{transform:rotate(-33.88deg)}76%{transform:rotate(-34.89deg)}77%{transform:rotate(-36.01deg)}78%{transform:rotate(-39.16deg)}79%{transform:rotate(-44.00deg)}80%{transform:rotate(-50.19deg)}81%{transform:rotate(-57.39deg)}82%{transform:rotate(-65.27deg)}83%{transform:rotate(-73.48deg)}84%{transform:rotate(-81.70deg)}85%{transform:rotate(-89.58deg)}86%{transform:rotate(-96.78deg)}87%{transform:rotate(-102.97deg)}88%{transform:rotate(-107.81deg)}89%{transform:rotate(-110.96deg)}90%{transform:rotate(-112.08deg)}91%{transform:rotate(-112.08deg)}92%{transform:rotate(-112.08deg)}93%{transform:rotate(-112.08deg)}94%{transform:rotate(-112.08deg)}95%{transform:rotate(-112.08deg)}96%{transform:rotate(-112.08deg)}97%{transform:rotate(-112.08deg)}98%{transform:rotate(-112.08deg)}99%{transform:rotate(-112.08deg)}100%{transform:rotate(-112.08deg)}}
+@keyframes h-j2{0%{transform:rotate(136.95deg)}1%{transform:rotate(136.95deg)}2%{transform:rotate(136.95deg)}3%{transform:rotate(136.95deg)}4%{transform:rotate(136.95deg)}5%{transform:rotate(136.95deg)}6%{transform:rotate(136.95deg)}7%{transform:rotate(136.95deg)}8%{transform:rotate(136.95deg)}9%{transform:rotate(136.95deg)}10%{transform:rotate(136.95deg)}11%{transform:rotate(136.95deg)}12%{transform:rotate(136.95deg)}13%{transform:rotate(136.95deg)}14%{transform:rotate(136.95deg)}15%{transform:rotate(136.95deg)}16%{transform:rotate(136.95deg)}17%{transform:rotate(136.95deg)}18%{transform:rotate(136.95deg)}19%{transform:rotate(136.83deg)}20%{transform:rotate(136.50deg)}21%{transform:rotate(135.99deg)}22%{transform:rotate(135.36deg)}23%{transform:rotate(134.65deg)}24%{transform:rotate(133.89deg)}25%{transform:rotate(133.13deg)}26%{transform:rotate(132.42deg)}27%{transform:rotate(131.79deg)}28%{transform:rotate(131.29deg)}29%{transform:rotate(130.95deg)}30%{transform:rotate(130.83deg)}31%{transform:rotate(130.92deg)}32%{transform:rotate(131.12deg)}33%{transform:rotate(131.39deg)}34%{transform:rotate(131.66deg)}35%{transform:rotate(131.87deg)}36%{transform:rotate(131.96deg)}37%{transform:rotate(131.96deg)}38%{transform:rotate(131.96deg)}39%{transform:rotate(131.96deg)}40%{transform:rotate(131.96deg)}41%{transform:rotate(131.87deg)}42%{transform:rotate(131.66deg)}43%{transform:rotate(131.39deg)}44%{transform:rotate(131.12deg)}45%{transform:rotate(130.92deg)}46%{transform:rotate(130.83deg)}47%{transform:rotate(129.71deg)}48%{transform:rotate(126.58deg)}49%{transform:rotate(121.76deg)}50%{transform:rotate(115.61deg)}51%{transform:rotate(108.44deg)}52%{transform:rotate(100.60deg)}53%{transform:rotate(92.43deg)}54%{transform:rotate(84.26deg)}55%{transform:rotate(76.42deg)}56%{transform:rotate(69.26deg)}57%{transform:rotate(63.10deg)}58%{transform:rotate(58.29deg)}59%{transform:rotate(55.15deg)}60%{transform:rotate(54.03deg)}61%{transform:rotate(54.16deg)}62%{transform:rotate(54.49deg)}63%{transform:rotate(54.91deg)}64%{transform:rotate(55.33deg)}65%{transform:rotate(55.66deg)}66%{transform:rotate(55.79deg)}67%{transform:rotate(55.79deg)}68%{transform:rotate(55.79deg)}69%{transform:rotate(55.79deg)}70%{transform:rotate(55.79deg)}71%{transform:rotate(55.66deg)}72%{transform:rotate(55.33deg)}73%{transform:rotate(54.91deg)}74%{transform:rotate(54.49deg)}75%{transform:rotate(54.16deg)}76%{transform:rotate(54.03deg)}77%{transform:rotate(55.24deg)}78%{transform:rotate(58.62deg)}79%{transform:rotate(63.82deg)}80%{transform:rotate(70.47deg)}81%{transform:rotate(78.21deg)}82%{transform:rotate(86.67deg)}83%{transform:rotate(95.49deg)}84%{transform:rotate(104.32deg)}85%{transform:rotate(112.78deg)}86%{transform:rotate(120.51deg)}87%{transform:rotate(127.16deg)}88%{transform:rotate(132.36deg)}89%{transform:rotate(135.74deg)}90%{transform:rotate(136.95deg)}91%{transform:rotate(136.95deg)}92%{transform:rotate(136.95deg)}93%{transform:rotate(136.95deg)}94%{transform:rotate(136.95deg)}95%{transform:rotate(136.95deg)}96%{transform:rotate(136.95deg)}97%{transform:rotate(136.95deg)}98%{transform:rotate(136.95deg)}99%{transform:rotate(136.95deg)}100%{transform:rotate(136.95deg)}}
+@keyframes h-j3{0%{transform:rotate(65.13deg)}1%{transform:rotate(65.13deg)}2%{transform:rotate(65.13deg)}3%{transform:rotate(65.13deg)}4%{transform:rotate(65.13deg)}5%{transform:rotate(65.13deg)}6%{transform:rotate(65.13deg)}7%{transform:rotate(65.13deg)}8%{transform:rotate(65.13deg)}9%{transform:rotate(65.13deg)}10%{transform:rotate(65.13deg)}11%{transform:rotate(65.13deg)}12%{transform:rotate(65.13deg)}13%{transform:rotate(65.13deg)}14%{transform:rotate(65.13deg)}15%{transform:rotate(65.13deg)}16%{transform:rotate(65.13deg)}17%{transform:rotate(65.13deg)}18%{transform:rotate(65.13deg)}19%{transform:rotate(64.56deg)}20%{transform:rotate(63.00deg)}21%{transform:rotate(60.63deg)}22%{transform:rotate(57.65deg)}23%{transform:rotate(54.28deg)}24%{transform:rotate(50.71deg)}25%{transform:rotate(47.14deg)}26%{transform:rotate(43.76deg)}27%{transform:rotate(40.79deg)}28%{transform:rotate(38.42deg)}29%{transform:rotate(36.85deg)}30%{transform:rotate(36.29deg)}31%{transform:rotate(34.12deg)}32%{transform:rotate(28.70deg)}33%{transform:rotate(21.66deg)}34%{transform:rotate(14.62deg)}35%{transform:rotate(9.20deg)}36%{transform:rotate(7.03deg)}37%{transform:rotate(7.03deg)}38%{transform:rotate(7.03deg)}39%{transform:rotate(7.03deg)}40%{transform:rotate(7.03deg)}41%{transform:rotate(9.20deg)}42%{transform:rotate(14.62deg)}43%{transform:rotate(21.66deg)}44%{transform:rotate(28.70deg)}45%{transform:rotate(34.12deg)}46%{transform:rotate(36.29deg)}47%{transform:rotate(36.79deg)}48%{transform:rotate(38.20deg)}49%{transform:rotate(40.37deg)}50%{transform:rotate(43.14deg)}51%{transform:rotate(46.36deg)}52%{transform:rotate(49.89deg)}53%{transform:rotate(53.57deg)}54%{transform:rotate(57.25deg)}55%{transform:rotate(60.78deg)}56%{transform:rotate(64.00deg)}57%{transform:rotate(66.77deg)}58%{transform:rotate(68.94deg)}59%{transform:rotate(70.35deg)}60%{transform:rotate(70.86deg)}61%{transform:rotate(69.71deg)}62%{transform:rotate(66.86deg)}63%{transform:rotate(63.15deg)}64%{transform:rotate(59.44deg)}65%{transform:rotate(56.58deg)}66%{transform:rotate(55.44deg)}67%{transform:rotate(55.44deg)}68%{transform:rotate(55.44deg)}69%{transform:rotate(55.44deg)}70%{transform:rotate(55.44deg)}71%{transform:rotate(56.58deg)}72%{transform:rotate(59.44deg)}73%{transform:rotate(63.15deg)}74%{transform:rotate(66.86deg)}75%{transform:rotate(69.71deg)}76%{transform:rotate(70.86deg)}77%{transform:rotate(70.77deg)}78%{transform:rotate(70.54deg)}79%{transform:rotate(70.18deg)}80%{transform:rotate(69.72deg)}81%{transform:rotate(69.19deg)}82%{transform:rotate(68.60deg)}83%{transform:rotate(67.99deg)}84%{transform:rotate(67.38deg)}85%{transform:rotate(66.80deg)}86%{transform:rotate(66.27deg)}87%{transform:rotate(65.81deg)}88%{transform:rotate(65.45deg)}89%{transform:rotate(65.22deg)}90%{transform:rotate(65.13deg)}91%{transform:rotate(65.13deg)}92%{transform:rotate(65.13deg)}93%{transform:rotate(65.13deg)}94%{transform:rotate(65.13deg)}95%{transform:rotate(65.13deg)}96%{transform:rotate(65.13deg)}97%{transform:rotate(65.13deg)}98%{transform:rotate(65.13deg)}99%{transform:rotate(65.13deg)}100%{transform:rotate(65.13deg)}}
+@keyframes h-fa{0%{transform:translateY(16.00px)}1%{transform:translateY(16.00px)}2%{transform:translateY(16.00px)}3%{transform:translateY(16.00px)}4%{transform:translateY(16.00px)}5%{transform:translateY(16.00px)}6%{transform:translateY(16.00px)}7%{transform:translateY(16.00px)}8%{transform:translateY(16.00px)}9%{transform:translateY(16.00px)}10%{transform:translateY(16.00px)}11%{transform:translateY(16.00px)}12%{transform:translateY(16.00px)}13%{transform:translateY(16.00px)}14%{transform:translateY(16.00px)}15%{transform:translateY(16.00px)}16%{transform:translateY(16.00px)}17%{transform:translateY(16.00px)}18%{transform:translateY(16.00px)}19%{transform:translateY(16.00px)}20%{transform:translateY(16.00px)}21%{transform:translateY(16.00px)}22%{transform:translateY(16.00px)}23%{transform:translateY(16.00px)}24%{transform:translateY(16.00px)}25%{transform:translateY(16.00px)}26%{transform:translateY(16.00px)}27%{transform:translateY(16.00px)}28%{transform:translateY(16.00px)}29%{transform:translateY(16.00px)}30%{transform:translateY(16.00px)}31%{transform:translateY(16.00px)}32%{transform:translateY(16.00px)}33%{transform:translateY(16.00px)}34%{transform:translateY(16.00px)}35%{transform:translateY(16.00px)}36%{transform:translateY(16.00px)}37%{transform:translateY(14.91px)}38%{transform:translateY(12.50px)}39%{transform:translateY(10.09px)}40%{transform:translateY(9.00px)}41%{transform:translateY(9.00px)}42%{transform:translateY(9.00px)}43%{transform:translateY(9.00px)}44%{transform:translateY(9.00px)}45%{transform:translateY(9.00px)}46%{transform:translateY(9.00px)}47%{transform:translateY(9.00px)}48%{transform:translateY(9.00px)}49%{transform:translateY(9.00px)}50%{transform:translateY(9.00px)}51%{transform:translateY(9.00px)}52%{transform:translateY(9.00px)}53%{transform:translateY(9.00px)}54%{transform:translateY(9.00px)}55%{transform:translateY(9.00px)}56%{transform:translateY(9.00px)}57%{transform:translateY(9.00px)}58%{transform:translateY(9.00px)}59%{transform:translateY(9.00px)}60%{transform:translateY(9.00px)}61%{transform:translateY(9.00px)}62%{transform:translateY(9.00px)}63%{transform:translateY(9.00px)}64%{transform:translateY(9.00px)}65%{transform:translateY(9.00px)}66%{transform:translateY(9.00px)}67%{transform:translateY(10.09px)}68%{transform:translateY(12.50px)}69%{transform:translateY(14.91px)}70%{transform:translateY(16.00px)}71%{transform:translateY(16.00px)}72%{transform:translateY(16.00px)}73%{transform:translateY(16.00px)}74%{transform:translateY(16.00px)}75%{transform:translateY(16.00px)}76%{transform:translateY(16.00px)}77%{transform:translateY(16.00px)}78%{transform:translateY(16.00px)}79%{transform:translateY(16.00px)}80%{transform:translateY(16.00px)}81%{transform:translateY(16.00px)}82%{transform:translateY(16.00px)}83%{transform:translateY(16.00px)}84%{transform:translateY(16.00px)}85%{transform:translateY(16.00px)}86%{transform:translateY(16.00px)}87%{transform:translateY(16.00px)}88%{transform:translateY(16.00px)}89%{transform:translateY(16.00px)}90%{transform:translateY(16.00px)}91%{transform:translateY(16.00px)}92%{transform:translateY(16.00px)}93%{transform:translateY(16.00px)}94%{transform:translateY(16.00px)}95%{transform:translateY(16.00px)}96%{transform:translateY(16.00px)}97%{transform:translateY(16.00px)}98%{transform:translateY(16.00px)}99%{transform:translateY(16.00px)}100%{transform:translateY(16.00px)}}
+@keyframes h-fb{0%{transform:translateY(-16.00px)}1%{transform:translateY(-16.00px)}2%{transform:translateY(-16.00px)}3%{transform:translateY(-16.00px)}4%{transform:translateY(-16.00px)}5%{transform:translateY(-16.00px)}6%{transform:translateY(-16.00px)}7%{transform:translateY(-16.00px)}8%{transform:translateY(-16.00px)}9%{transform:translateY(-16.00px)}10%{transform:translateY(-16.00px)}11%{transform:translateY(-16.00px)}12%{transform:translateY(-16.00px)}13%{transform:translateY(-16.00px)}14%{transform:translateY(-16.00px)}15%{transform:translateY(-16.00px)}16%{transform:translateY(-16.00px)}17%{transform:translateY(-16.00px)}18%{transform:translateY(-16.00px)}19%{transform:translateY(-16.00px)}20%{transform:translateY(-16.00px)}21%{transform:translateY(-16.00px)}22%{transform:translateY(-16.00px)}23%{transform:translateY(-16.00px)}24%{transform:translateY(-16.00px)}25%{transform:translateY(-16.00px)}26%{transform:translateY(-16.00px)}27%{transform:translateY(-16.00px)}28%{transform:translateY(-16.00px)}29%{transform:translateY(-16.00px)}30%{transform:translateY(-16.00px)}31%{transform:translateY(-16.00px)}32%{transform:translateY(-16.00px)}33%{transform:translateY(-16.00px)}34%{transform:translateY(-16.00px)}35%{transform:translateY(-16.00px)}36%{transform:translateY(-16.00px)}37%{transform:translateY(-14.91px)}38%{transform:translateY(-12.50px)}39%{transform:translateY(-10.09px)}40%{transform:translateY(-9.00px)}41%{transform:translateY(-9.00px)}42%{transform:translateY(-9.00px)}43%{transform:translateY(-9.00px)}44%{transform:translateY(-9.00px)}45%{transform:translateY(-9.00px)}46%{transform:translateY(-9.00px)}47%{transform:translateY(-9.00px)}48%{transform:translateY(-9.00px)}49%{transform:translateY(-9.00px)}50%{transform:translateY(-9.00px)}51%{transform:translateY(-9.00px)}52%{transform:translateY(-9.00px)}53%{transform:translateY(-9.00px)}54%{transform:translateY(-9.00px)}55%{transform:translateY(-9.00px)}56%{transform:translateY(-9.00px)}57%{transform:translateY(-9.00px)}58%{transform:translateY(-9.00px)}59%{transform:translateY(-9.00px)}60%{transform:translateY(-9.00px)}61%{transform:translateY(-9.00px)}62%{transform:translateY(-9.00px)}63%{transform:translateY(-9.00px)}64%{transform:translateY(-9.00px)}65%{transform:translateY(-9.00px)}66%{transform:translateY(-9.00px)}67%{transform:translateY(-10.09px)}68%{transform:translateY(-12.50px)}69%{transform:translateY(-14.91px)}70%{transform:translateY(-16.00px)}71%{transform:translateY(-16.00px)}72%{transform:translateY(-16.00px)}73%{transform:translateY(-16.00px)}74%{transform:translateY(-16.00px)}75%{transform:translateY(-16.00px)}76%{transform:translateY(-16.00px)}77%{transform:translateY(-16.00px)}78%{transform:translateY(-16.00px)}79%{transform:translateY(-16.00px)}80%{transform:translateY(-16.00px)}81%{transform:translateY(-16.00px)}82%{transform:translateY(-16.00px)}83%{transform:translateY(-16.00px)}84%{transform:translateY(-16.00px)}85%{transform:translateY(-16.00px)}86%{transform:translateY(-16.00px)}87%{transform:translateY(-16.00px)}88%{transform:translateY(-16.00px)}89%{transform:translateY(-16.00px)}90%{transform:translateY(-16.00px)}91%{transform:translateY(-16.00px)}92%{transform:translateY(-16.00px)}93%{transform:translateY(-16.00px)}94%{transform:translateY(-16.00px)}95%{transform:translateY(-16.00px)}96%{transform:translateY(-16.00px)}97%{transform:translateY(-16.00px)}98%{transform:translateY(-16.00px)}99%{transform:translateY(-16.00px)}100%{transform:translateY(-16.00px)}}
+@keyframes h-blk{0%{transform:translate(350.00px,271.00px)}1%{transform:translate(350.00px,271.00px)}2%{transform:translate(350.00px,271.00px)}3%{transform:translate(350.00px,271.00px)}4%{transform:translate(350.00px,271.00px)}5%{transform:translate(350.00px,271.00px)}6%{transform:translate(350.00px,271.00px)}7%{transform:translate(350.00px,271.00px)}8%{transform:translate(350.00px,271.00px)}9%{transform:translate(350.00px,271.00px)}10%{transform:translate(350.00px,271.00px)}11%{transform:translate(350.00px,271.00px)}12%{transform:translate(350.00px,271.00px)}13%{transform:translate(350.00px,271.00px)}14%{transform:translate(350.00px,271.00px)}15%{transform:translate(350.00px,271.00px)}16%{transform:translate(350.00px,271.00px)}17%{transform:translate(350.00px,271.00px)}18%{transform:translate(350.00px,271.00px)}19%{transform:translate(350.00px,271.00px)}20%{transform:translate(350.00px,271.00px)}21%{transform:translate(350.00px,271.00px)}22%{transform:translate(350.00px,271.00px)}23%{transform:translate(350.00px,271.00px)}24%{transform:translate(350.00px,271.00px)}25%{transform:translate(350.00px,271.00px)}26%{transform:translate(350.00px,271.00px)}27%{transform:translate(350.00px,271.00px)}28%{transform:translate(350.00px,271.00px)}29%{transform:translate(350.00px,271.00px)}30%{transform:translate(350.00px,271.00px)}31%{transform:translate(350.00px,271.00px)}32%{transform:translate(350.00px,271.00px)}33%{transform:translate(350.00px,271.00px)}34%{transform:translate(350.00px,271.00px)}35%{transform:translate(350.00px,271.00px)}36%{transform:translate(350.00px,271.00px)}37%{transform:translate(350.00px,271.00px)}38%{transform:translate(350.00px,271.00px)}39%{transform:translate(350.00px,271.00px)}40%{transform:translate(350.00px,271.00px)}41%{transform:translate(350.87px,267.32px)}42%{transform:translate(352.45px,257.98px)}43%{transform:translate(353.20px,245.64px)}44%{transform:translate(352.46px,233.23px)}45%{transform:translate(350.88px,223.75px)}46%{transform:translate(350.00px,220.00px)}47%{transform:translate(352.21px,219.69px)}48%{transform:translate(358.34px,218.86px)}49%{transform:translate(367.61px,217.70px)}50%{transform:translate(379.18px,216.40px)}51%{transform:translate(392.19px,215.17px)}52%{transform:translate(405.80px,214.16px)}53%{transform:translate(419.24px,213.48px)}54%{transform:translate(431.84px,213.17px)}55%{transform:translate(443.06px,213.20px)}56%{transform:translate(452.53px,213.51px)}57%{transform:translate(460.04px,213.98px)}58%{transform:translate(465.50px,214.48px)}59%{transform:translate(468.84px,214.85px)}60%{transform:translate(470.00px,215.00px)}61%{transform:translate(470.49px,219.15px)}62%{transform:translate(471.37px,229.53px)}63%{transform:translate(471.78px,243.06px)}64%{transform:translate(471.37px,256.55px)}65%{transform:translate(470.49px,266.88px)}66%{transform:translate(470.00px,271.00px)}67%{transform:translate(470.00px,271.00px)}68%{transform:translate(470.00px,271.00px)}69%{transform:translate(470.00px,271.00px)}70%{transform:translate(470.00px,271.00px)}71%{transform:translate(470.00px,271.00px)}72%{transform:translate(470.00px,271.00px)}73%{transform:translate(470.00px,271.00px)}74%{transform:translate(470.00px,271.00px)}75%{transform:translate(470.00px,271.00px)}76%{transform:translate(470.00px,271.00px)}77%{transform:translate(470.00px,271.00px)}78%{transform:translate(470.00px,271.00px)}79%{transform:translate(470.00px,271.00px)}80%{transform:translate(470.00px,271.00px)}81%{transform:translate(470.00px,271.00px)}82%{transform:translate(470.00px,271.00px)}83%{transform:translate(470.00px,271.00px)}84%{transform:translate(470.00px,271.00px)}85%{transform:translate(470.00px,271.00px)}86%{transform:translate(470.00px,271.00px)}87%{transform:translate(470.00px,271.00px)}88%{transform:translate(470.00px,271.00px)}89%{transform:translate(470.00px,271.00px)}90%{transform:translate(470.00px,271.00px)}91%{transform:translate(470.00px,271.00px)}92%{transform:translate(470.00px,271.00px)}93%{transform:translate(470.00px,271.00px)}94%{transform:translate(470.00px,271.00px)}95%{transform:translate(470.00px,271.00px)}96%{transform:translate(470.00px,271.00px)}97%{transform:translate(470.00px,271.00px)}98%{transform:translate(470.00px,271.00px)}99%{transform:translate(470.00px,271.00px)}100%{transform:translate(470.00px,271.00px)}}
+.hero-svg .h-anim{animation-duration:12s;animation-iteration-count:infinite;animation-timing-function:linear}
+.h-j1{animation-name:h-j1}.h-j2{animation-name:h-j2}.h-j3{animation-name:h-j3}
+.h-fa{animation-name:h-fa}.h-fb{animation-name:h-fb}.h-blk{animation-name:h-blk}
+.h-blk-o{animation:h-blk-o 12s linear infinite}
+@keyframes h-blk-o{0%{opacity:0}3%,93%{opacity:1}97%,100%{opacity:0}}
+.h-bubble-g{animation:h-bubble 12s ease-out infinite;opacity:0}
+@keyframes h-bubble{0%,1%{opacity:0;transform:translateY(8px)}4%,84%{opacity:1;transform:none}88%,100%{opacity:0;transform:none}}
+.h-bbox-g{animation:h-bbox 12s linear infinite;opacity:0}
+@keyframes h-bbox{0%,9%{opacity:0}11%,32%{opacity:1}36%,100%{opacity:0}}
+.h-flash{animation:h-flash 12s linear infinite;opacity:0}
+@keyframes h-flash{0%,8%{opacity:0}9%{opacity:.9}12%,100%{opacity:0}}
+.h-ok-g{animation:h-ok 12s var(--ease-out-expo) infinite;opacity:0;transform-box:fill-box;transform-origin:center}
+@keyframes h-ok{0%,70%{opacity:0;transform:scale(.5)}73%,86%{opacity:1;transform:scale(1)}90%,100%{opacity:0;transform:scale(1)}}
+.hero-svg.paused *{animation-play-state:paused!important}
+.tele-a{animation:tele-a 4s ease-in-out infinite}.tele-b{animation:tele-b 4s ease-in-out infinite}
+.tele-a.lag,.tele-b.lag{animation-delay:.35s}
+@keyframes tele-a{0%,100%{transform:rotate(-60deg)}50%{transform:rotate(-25deg)}}
+@keyframes tele-b{0%,100%{transform:rotate(70deg)}50%{transform:rotate(30deg)}}
+.rec-dot{animation:rec 1.2s steps(2) infinite}@keyframes rec{50%{opacity:.2}}
+@media (prefers-reduced-motion: reduce){.h-j1{transform:rotate(-47.20deg)}.h-j2{transform:rotate(76.42deg)}.h-j3{transform:rotate(60.78deg)}.h-fa{transform:translateY(9.0px)}.h-fb{transform:translateY(-9.0px)}.h-blk{transform:translate(443.06px,213.20px)}.h-bubble-g,.h-bbox-g{opacity:1}}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand">SO-101 <span>×</span> VLM</div>
+    <nav class="toc" aria-label="目次">
+      <a href="#overview">概要</a>
+      <a href="#words">用語</a>
+      <a href="#how">しくみ</a>
+      <a href="#coords">座標変換</a>
+      <a href="#vlm">VLM 切替</a>
+      <a href="#judge">成功判定</a>
+      <a href="#safety">安全</a>
+      <a href="#req">要件</a>
+      <a href="#v2">v2</a>
+      <a href="#schedule">日程</a>
+      <a href="#tasks">タスク</a>
+      <a href="#risk">リスク</a>
+    </nav>
+    <button class="theme-btn" id="themeBtn" type="button" aria-label="配色を切り替える">◐</button>
+  </div>
+</header>
+
+<main>
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="eyebrow"><span class="dot"></span>要件定義書 · Physical AI 応用編1 · 2026-10-18 時点</div>
+        <h1 id="hero-title"><span class="nw">言葉で</span><span class="nw"><em>片付けて</em>くれる</span> <span class="nw">SO-101</span></h1>
+        <p class="lead">「赤いブロックを箱に入れて」と話しかけると、AI がカメラ画像から対象を見つけ、ロボットアーム SO-101 が掴んで箱に入れる。まずシミュレーションで作り、あとで同じコードのまま実機に移す。</p>
+        <div class="meta-row">
+          <span class="chip v1">v1 シミュレーション · VLM + IK</span>
+          <span class="chip v2">v2 実機 · SmolVLA</span>
+          <span class="chip accent">日程は仮</span>
+        </div>
+      </div>
+      <figure class="stage" aria-label="動作のイメージアニメーション">
+        <svg class="hero-svg" id="heroSvg" viewBox="0 0 600 330" role="img" aria-labelledby="heroSvgTitle">
+<title id="heroSvgTitle">言葉の指示を受けたロボットアームが、赤いブロックを掴んで箱に入れるアニメーション</title>
+<rect x="0" y="280" width="600" height="50" class="h-table"/>
+<g transform="translate(540,52)"><rect x="-22" y="-14" width="44" height="28" rx="5" class="h-cam"/><circle cx="-22" cy="0" r="8" fill="var(--accent)"/>
+<line x1="0" y1="14" x2="0" y2="40" stroke="var(--ink)" stroke-width="3"/><text x="-30" y="-20" class="h-label" style="fill:var(--muted)">camera</text></g>
+<polygon points="518,52 330,262 500,262" fill="var(--accent)" class="h-flash"/>
+<g class="h-bubble-g"><rect x="18" y="20" width="250" height="44" rx="12" class="h-bubble"/><path d="M60 64 L70 78 L82 64" class="h-bubble"/>
+<text x="34" y="48" class="h-text">「赤いブロックを箱に入れて」</text></g>
+<rect x="439" y="244" width="6" height="36" class="h-box"/><rect x="495" y="244" width="6" height="36" class="h-box"/><rect x="439" y="276" width="62" height="4" class="h-box"/>
+<rect x="281" y="262" width="18" height="18" rx="2" fill="var(--block-blue)"/><rect x="396" y="262" width="18" height="18" rx="2" fill="var(--block-green)"/>
+<g class="h-bbox-g"><rect x="335" y="256" width="30" height="30" class="h-bbox"/><text x="318" y="250" class="h-label">pick: red block</text>
+<rect x="433" y="236" width="74" height="48" class="h-bbox"/><text x="440" y="300" class="h-label">place: box</text></g>
+<g class="h-blk-o"><g class="h-anim h-blk"><rect x="-9" y="-9" width="18" height="18" rx="2" fill="var(--block-red)"/></g></g>
+<rect x="232" y="220" width="36" height="60" rx="4" class="h-link"/>
+<g transform="translate(250,220)"><g class="h-anim h-j1">
+<rect x="0" y="-8" width="130" height="16" rx="8" class="h-link"/>
+<g transform="translate(130,0)"><g class="h-anim h-j2">
+<rect x="0" y="-6" width="120" height="12" rx="6" class="h-link"/>
+<g transform="translate(120,0)"><g class="h-anim h-j3">
+<rect x="4" y="-20" width="14" height="40" rx="3" class="h-link"/>
+<g class="h-anim h-fa"><rect x="18" y="0" width="22" height="4" rx="1.5" class="h-link"/></g>
+<g class="h-anim h-fb"><rect x="18" y="-4" width="22" height="4" rx="1.5" class="h-link"/></g>
+</g><circle r="7" class="h-joint"/><circle r="2.5" class="h-joint-in"/></g>
+</g><circle r="9" class="h-joint"/><circle r="3" class="h-joint-in"/></g>
+</g><circle r="11" class="h-joint"/><circle r="4" class="h-joint-in"/></g>
+<g class="h-ok-g"><circle cx="470" cy="214" r="16" class="h-ok"/><path d="M462 214 l6 6 l10 -12" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="492" y="219" class="h-label" style="fill:var(--ok);font-size:13px;font-weight:700">成功</text></g>
+</svg>
+        <div class="stage-caption">
+          <ol class="stage-steps" id="heroSteps" aria-hidden="true"></ol>
+          <button class="icon-btn" id="heroToggle" type="button" aria-pressed="false">一時停止</button>
+        </div>
+        <p class="stage-text" id="heroText" aria-live="polite">指示を受け取る<small>ユーザーが言葉で頼む</small></p>
+      </figure>
+    </div>
+  </section>
+
+  <section class="block" id="overview" aria-labelledby="overview-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">01</span><h2 id="overview-h">3つの問いで分かる概要</h2><p>何を作り、どう作り、いつまでに終えるか。</p></div>
+      <div class="answers">
+        <article class="card answer big">
+          <div class="q">WHAT · 何を作る</div>
+          <div class="a">言葉の指示で、ブロックを箱に片付けるロボット</div>
+          <p>自然言語の指示(例:「赤いブロックを箱に入れて」)を VLM で解釈し、SO-101 が pick &amp; place を実行する。</p>
+        </article>
+        <article class="card answer">
+          <div class="q">HOW · どう作る</div>
+          <div class="a">AI が「見て決める」<br>計算で「動かす」</div>
+          <p>VLM(画像と言葉が分かる AI)が対象を見つけ、IK(逆運動学)で関節角を計算する。v2 では動作そのものも AI(SmolVLA)に任せて比較する。</p>
+        </article>
+        <article class="card answer">
+          <div class="q">WHEN · いつまでに</div>
+          <div class="a">5 週間で提出</div>
+          <ul class="date-list"><li><span>v1 完了</span><b>2026-11-01</b></li><li><span>v2 完了</span><b>2026-11-15</b></li><li><span>提出</span><b>2026-11-22</b></li></ul>
+        </article>
+      </div>
+
+      <div class="versions">
+        <article class="card version">
+          <h3>v1 <span class="tag">SIMULATION</span></h3>
+          <div class="when">MuJoCo の中で完結する</div>
+          <ul>
+            <li>VLM が画像から「どれを」「どこへ」を決める</li>
+            <li>IK で手先をそこへ運ぶ</li>
+            <li>20 回試して成功率を測る</li>
+            <li>4 つの VLM(Anthropic / OpenAI / Gemini / Gemma)を比べる</li>
+          </ul>
+        </article>
+        <article class="card version v2">
+          <h3>v2 <span class="tag">REAL ROBOT</span></h3>
+          <div class="when">実機の SO-101 で動かす</div>
+          <ul>
+            <li>リーダーアームで人がお手本を 50 本見せる</li>
+            <li>お手本で SmolVLA を追加学習する</li>
+            <li>IK 版と SmolVLA 版を実機で 10 回ずつ比べる</li>
+            <li>間に合わなければ v1 のみで提出(v1 だけで課題は成立)</li>
+          </ul>
+        </article>
+      </div>
+
+      <h3>やること・やらないこと(v1)</h3>
+      <div class="scope">
+        <div class="card in"><b>やる</b><ul><li>MuJoCo 上の SO-101 によるシミュレーション</li><li>VLM によるカメラ画像からの対象物・置き場所の特定</li><li>画像座標と深度から3次元位置への変換</li><li>IK による把持・運搬・配置</li><li>成功率の自動評価と動画の録画</li><li>ノード分割(dora-rs)、環境固定(uv / Docker)、LeRobot 形式での実行記録</li></ul></div>
+        <div class="card out"><b>やらない</b><ul><li>実機での動作(設計上の差し替え口のみ用意する)</li><li>SmolVLA の学習・推論(v2)</li><li>ROS 2 対応(任意。レポートに移植方針を記載するのみ)</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="words" aria-labelledby="words-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">02</span><h2 id="words-h">まずはこの用語だけ</h2><p>この文書を読むのに必要な言葉。カードにマウスを乗せると少し浮きます。</p></div>
+      <dl class="glossary">
+        <div class="card term"><dt>SO-101 <small>ロボットアーム</small></dt><dd>机に置ける小型の 6 関節アーム。人が動かす<b>リーダー</b>と、その動きをまねる<b>フォロワー</b>の 2 台組。<span class="role">今回の唯一の実機</span></dd></div>
+        <div class="card term"><dt>VLM <small>Vision-Language Model</small></dt><dd>画像と言葉の両方が分かる AI。「この写真の赤いブロックはどこ?」に答えられる。<span class="role">役目: どれを掴み、どこへ置くか決める</span></dd></div>
+        <div class="card term"><dt>IK <small>逆運動学</small></dt><dd>「手先をここに置きたい」から、各関節を何度曲げればよいかを逆算する計算。<span class="role">役目: 位置を関節角に変える</span></dd></div>
+        <div class="card term"><dt>VLA / SmolVLA <small>Vision-Language-Action</small></dt><dd>画像と言葉から、ロボットの動きを直接出す AI。SmolVLA は LeRobot で公開されている小型の VLA。<span class="role">役目: v2 で IK の代わりに動かす</span></dd></div>
+        <div class="card term"><dt>MuJoCo <small>物理シミュレータ</small></dt><dd>重力や接触を計算する仮想の世界。実機を壊す心配なく試せる。<span class="role">役目: v1 の舞台</span></dd></div>
+        <div class="card term"><dt>dora-rs <small>講義 第6回</small></dt><dd>処理を小さなプログラム(ノード)に分けて、データを流してつなぐ仕組み。ROS 2 の考え方に近い。<span class="role">役目: 部品どうしをつなぐ配線</span></dd></div>
+        <div class="card term"><dt>LeRobot <small>講義 第5回</small></dt><dd>Hugging Face のロボット学習ライブラリ。SO-101 のドライバ、データの保存形式、学習をまとめて扱う。<span class="role">役目: 実機の操作と記録</span></dd></div>
+        <div class="card term"><dt>テレオペ <small>遠隔操作</small></dt><dd>人がリーダーアームを手で動かし、フォロワーが同じ動きをする。その様子を記録したものが「お手本(デモ)」。<span class="role">役目: v2 の学習データ集め</span></dd></div>
+        <div class="card term"><dt>深度 <small>Depth</small></dt><dd>カメラから物体までの距離。画像上の 1 点を、3 次元の位置に戻すのに使う。<span class="role">役目: 2D → 3D</span></dd></div>
+        <div class="card term"><dt>受け入れ基準 <small>AC</small></dt><dd>「これを満たせば完成」と判定する条件。ID は AC-01 のように付ける。<span class="role">役目: 完成の物差し</span></dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section class="block" id="how" aria-labelledby="how-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">03</span><h2 id="how-h">しくみ: 指示から動作まで 8 ステップ</h2><p>カードを押すか「次へ」で 1 つずつ進みます。v2 に切り替えると、通らない道が薄くなります。</p></div>
+      <div class="pipe-controls">
+        <div class="seg" role="group" aria-label="バージョン">
+          <button type="button" class="v1-btn" data-ver="v1" aria-pressed="true">v1(VLM + IK)</button>
+          <button type="button" class="v2-btn" data-ver="v2" aria-pressed="false">v2(SmolVLA)</button>
+        </div>
+        <button class="icon-btn" type="button" id="pipePrev">← 前へ</button>
+        <button class="icon-btn" type="button" id="pipeNext">次へ →</button>
+        <button class="icon-btn" type="button" id="pipePlay" aria-pressed="false">▶ 自動再生</button>
+      </div>
+      <ol class="pipe" id="pipe"></ol>
+      <div class="pipe-detail">
+        <div class="card" id="pipeCard" aria-live="polite"></div>
+        <pre id="pipeData" aria-label="このステップで流れるデータの例"></pre>
+      </div>
+      <p class="note" style="margin-top:1rem">sim と実機の切り替えは、<code>camera</code> と <code>robot</code> の 2 つだけを設定ファイルで差し替える。ほかの部品はそのまま使う。</p>
+    </div>
+  </section>
+
+  <section class="block" id="coords" aria-labelledby="coords-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">04</span><h2 id="coords-h">画像の「点」を、ロボットの「位置」に変える</h2><p>VLM が返すのは画像上のピクセル。ロボットが欲しいのは自分から見た 3 次元の位置。その橋渡しをする。</p></div>
+      <div class="figure-row">
+        <div class="card figure">
+          <svg viewBox="0 0 520 330" role="img" aria-labelledby="coordTitle" id="coordSvg">
+            <title id="coordTitle">カメラ画像上の点を、深度を使ってロボット座標に変換する図</title>
+            <rect x="0" y="270" width="520" height="60" class="h-table"/>
+            <g class="reveal" data-cstep="1">
+              <rect x="40" y="40" width="150" height="110" rx="8" fill="var(--paper-2)" stroke="var(--line)"/>
+              <text x="48" y="58" class="h-label" fill="var(--muted)" style="fill:var(--muted)">カメラ画像 640×480</text>
+              <rect x="132" y="87" width="12" height="12" fill="var(--block-red)"/>
+              <circle cx="138" cy="93" r="9" fill="none" stroke="var(--accent)" stroke-width="2"/>
+              <text x="70" y="140" class="h-label">(u, v) = (420, 231)</text>
+            </g>
+            <g>
+              <rect x="20" y="170" width="44" height="30" rx="5" class="h-cam"/>
+              <circle cx="64" cy="185" r="9" fill="var(--accent)"/>
+              <text x="14" y="220" class="h-label" style="fill:var(--muted)">カメラ</text>
+            </g>
+            <g class="reveal" data-cstep="2">
+              <line x1="70" y1="187" x2="330" y2="256" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="7 5"/>
+              <text x="170" y="206" class="h-label" transform="rotate(15 170 206)">深度 0.52 m</text>
+            </g>
+            <rect x="320" y="246" width="22" height="24" fill="var(--block-red)"/>
+            <g class="reveal" data-cstep="3">
+              <rect x="430" y="210" width="40" height="60" rx="4" class="h-link"/>
+              <line x1="450" y1="206" x2="450" y2="150" stroke="var(--v1)" stroke-width="3"/>
+              <line x1="450" y1="206" x2="505" y2="206" stroke="var(--ng)" stroke-width="3"/>
+              <text x="456" y="158" class="h-label" style="fill:var(--v1)">z</text>
+              <text x="498" y="198" class="h-label" style="fill:var(--ng)">x</text>
+              <line x1="342" y1="252" x2="436" y2="214" stroke="var(--ink)" stroke-width="2" marker-end="url(#arrowHead)"/>
+              <text x="350" y="300" class="h-label" style="fill:var(--ink)">ロボットから見て (0.18, -0.02, 0.01) m</text>
+            </g>
+            <defs><marker id="arrowHead" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M10 0 L0 5 L10 10 z" fill="var(--ink)"/></marker></defs>
+          </svg>
+          <p class="note">数値はイメージ。sim ではシーン定義からカメラの位置が分かるので、変換行列を自動で作れる。</p>
+        </div>
+        <ol class="steps" id="coordSteps">
+          <li data-cstep="1"><div><b>画像上の点を取る</b><span>VLM が返した枠の中心ピクセル (u, v)。外れ値を避けるため、枠の中の深度は中央値を使う。</span></div></li>
+          <li data-cstep="2"><div><b>深度でカメラからの 3D 位置に戻す</b><span>カメラの内部パラメータ(焦点距離・中心)を使い、「カメラから見てどこか」を計算する。</span></div></li>
+          <li data-cstep="3"><div><b>ロボットの根元から見た位置に直す</b><span>カメラ → ロボット根元の変換行列(<code>calibration.yaml</code>)を掛ける。実機ではここを計測して入れ替える。</span></div></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="vlm" aria-labelledby="vlm-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">05</span><h2 id="vlm-h">4 つの VLM を、同じ形にそろえて使う</h2><p>会社ごとに座標の返し方が違う。各実装の中で共通の形(画像のピクセル座標)に変換するので、後ろの部品は気にしなくてよい。</p></div>
+      <div class="card">
+        <div class="tabs" role="tablist" aria-label="VLM プロバイダ" id="vlmTabs"></div>
+        <div class="conv" role="tabpanel" id="vlmPanel" aria-live="polite">
+          <div><div class="conv-label">プロバイダの返事(例)</div><pre id="vlmRaw"></pre></div>
+          <div class="arrow" aria-hidden="true">→</div>
+          <div><div class="conv-label">共通形式 bbox_px [x1, y1, x2, y2]</div><pre id="vlmOut"></pre></div>
+        </div>
+        <p id="vlmNote" style="font-size:var(--text-sm);color:var(--ink-2);margin:0.8rem 0 0"></p>
+        <p class="note" style="margin-top:0.8rem">出力形式は説明用の例。モデル名・座標の形式は、実装時に各社の公式ドキュメントと実測で確認する(タスク T-16)。API キーは環境変数で渡し、コードには書かない。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="judge" aria-labelledby="judge-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">06</span><h2 id="judge-h">「成功」の決め方</h2><p>3 つの条件を全部満たしたときだけ成功。ボタンで状況を切り替えて確かめられます。</p></div>
+      <div class="judge">
+        <div class="card figure">
+          <svg viewBox="0 0 400 220" role="img" aria-labelledby="judgeTitle" id="judgeSvg">
+            <title id="judgeTitle">箱の断面図とブロックの位置</title>
+            <rect x="0" y="190" width="400" height="30" class="h-table"/>
+            <rect x="140" y="120" width="10" height="70" class="h-box"/>
+            <rect x="260" y="120" width="10" height="70" class="h-box"/>
+            <rect x="140" y="182" width="130" height="8" class="h-box"/>
+            <line x1="120" y1="120" x2="290" y2="120" stroke="var(--muted)" stroke-dasharray="4 4"/>
+            <text x="292" y="124" class="h-label" style="fill:var(--muted)">縁の高さ</text>
+            <line x1="150" y1="60" x2="150" y2="200" stroke="var(--v1)" stroke-dasharray="3 4" opacity="0.6"/>
+            <line x1="260" y1="60" x2="260" y2="200" stroke="var(--v1)" stroke-dasharray="3 4" opacity="0.6"/>
+            <text x="166" y="56" class="h-label" style="fill:var(--v1)">箱の内寸</text>
+            <g class="jblock" id="jBlock">
+              <rect x="-17" y="-17" width="34" height="34" rx="3" fill="var(--block-red)"/>
+              <circle r="3" fill="#fff"/>
+            </g>
+            <g class="motion-lines" id="jMotion" stroke="var(--ink)" stroke-width="2" stroke-linecap="round">
+              <line x1="170" y1="150" x2="182" y2="150"/><line x1="166" y1="160" x2="180" y2="160"/>
+            </g>
+          </svg>
+        </div>
+        <div>
+          <div class="seg" role="group" aria-label="状況" id="judgeBtns">
+            <button type="button" data-case="ok" aria-pressed="true">箱の中で静止</button>
+            <button type="button" data-case="out" aria-pressed="false">箱の外</button>
+            <button type="button" data-case="rim" aria-pressed="false">縁に乗る</button>
+            <button type="button" data-case="move" aria-pressed="false">まだ転がる</button>
+          </div>
+          <ul class="conds" id="judgeConds">
+            <li data-c="0"><span class="mark">?</span><span><b>① 水平方向</b>: ブロックの中心が箱の内寸の内側</span></li>
+            <li data-c="1"><span class="mark">?</span><span><b>② 高さ</b>: ブロックの中心が箱の縁より低い</span></li>
+            <li data-c="2"><span class="mark">?</span><span><b>③ 静止</b>: 放して 1 秒後の速さが 1 cm/s 以下</span></li>
+          </ul>
+          <div class="verdict" id="judgeVerdict" aria-live="polite"></div>
+          <p style="font-size:var(--text-sm);color:var(--muted)">FR-07。しきい値は暫定。失敗はさらに「VLM 失敗 / IK 失敗 / 掴み失敗 / 置き失敗」に分けて記録する。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="safety" aria-labelledby="safety-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">07</span><h2 id="safety-h">実機を動かす前の安全ルール</h2><p>NFR-07。シミュレーションでも同じフィルタを通し、実機で初めて試すことがないようにする。</p></div>
+      <div class="safety">
+        <div class="card"><span class="ico" aria-hidden="true">⏻</span><h3>非常停止</h3><p>キー操作 1 回でモーターの力(トルク)を切る。</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">🐢</span><h3>最初はゆっくり</h3><p>初回の動作確認は、速度の上限を通常の 30% 以下にする。</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">▢</span><h3>作業範囲の外は拒否</h3><p>決めた箱型の範囲の外へ行こうとする指令は送らない。</p></div>
+        <div class="card"><span class="ico" aria-hidden="true">⚡</span><h3>通信が切れたら止まる</h3><p>状態が一定時間届かなければ、その場で停止する。</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="req" aria-labelledby="req-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">08</span><h2 id="req-h">要件の一覧(v1)</h2><p>ここが要件定義書の本体。開くと表が出ます。</p></div>
+      <details class="fold" open><summary>前提と制約<span class="count">8 項目</span></summary><div class="tbl-wrap"><table class=""><thead><tr><th class="plain">項目</th><th>内容</th></tr></thead><tbody><tr><td class="plain">ロボット</td><td>SO-101 のみ(フォロワーアームとリーダーアーム)</td></tr><tr><td class="plain">シミュレータ</td><td>MuJoCo。モデルは公式 <code>TheRobotStudio/SO-ARM100</code> の <code>Simulation/SO101</code></td></tr><tr><td class="plain">開発環境</td><td>macOS (Apple Silicon)、GPU なし</td></tr><tr><td class="plain">言語</td><td>Python</td></tr><tr><td class="plain">VLM</td><td>Anthropic / OpenAI / Gemini / Gemma を設定で切り替えて使う。API キーは環境変数で渡し、コードに含めない</td></tr><tr><td class="plain">ROS</td><td>必須としない</td></tr><tr><td class="plain">提出物</td><td>動画(1〜3分、2倍速まで可。倍速の場合は動画内とレポートに明記)、コード一式、レポート</td></tr><tr><td class="plain">ライセンス</td><td>SO-101 モデル(SO-ARM100 リポジトリ)を含む、利用する OSS・モデルのライセンスを確認し、README に記載する</td></tr></tbody></table></div></details>
+      <details class="fold"><summary>機能要件 FR(何ができるか)<span class="count">16 件</span></summary><div class="tbl-wrap"><table class=""><thead><tr><th>ID</th><th>要件</th></tr></thead><tbody><tr><td>FR-01</td><td>システムは、シミュレーション内に SO-101、色違いのブロック複数、箱、固定カメラ(RGB と深度)を持つシーンを生成しなければならない。</td></tr><tr><td>FR-02</td><td>ユーザーが自然言語の指示を入力したとき、システムは、カメラ画像と指示を VLM に渡し、対象物と置き場所の画像上の位置を構造化データ(JSON)で受け取らなければならない。</td></tr><tr><td>FR-02a</td><td>システムは、VLM を <code>VlmClient</code> 抽象インターフェース(画像と指示を入力し、共通スキーマの検出結果を返す)の背後に置き、Anthropic、OpenAI、Gemini、Gemma の各実装を設定(プロバイダ名とモデル名)のみで切り替えられなければならない。</td></tr><tr><td>FR-02b</td><td>プロバイダごとに座標の表現(絶対ピクセル、0〜1000 の正規化など)が異なるとき、システムは、各実装の内部で共通形式(画像のピクセル座標)に変換して返さなければならない。</td></tr><tr><td>FR-02c</td><td>Gemma は、Ollama(ローカル推論)経由で利用できなければならない。接続先(<code>base_url</code>)とモデル名は設定で指定し、Ollama の OpenAI 互換エンドポイントを使って OpenAI 用の実装と共通化してよい。Gemini API 経由の Gemma は v1 の対象外とする。</td></tr><tr><td>FR-03</td><td>VLM の出力が JSON として不正、または対象が見つからないとき、システムは、動作を実行せず理由を表示しなければならない。</td></tr><tr><td>FR-03a</td><td>VLM の呼び出しがタイムアウト(暫定 30 秒)、レート制限、通信エラーになったとき、システムは、間隔を空けて最大 2 回再試行し、それでも失敗したら動作を実行せず、失敗として記録しなければならない。</td></tr><tr><td>FR-04</td><td>対象位置を受け取ったとき、システムは、深度とカメラパラメータからロボット座標系の3次元位置を算出しなければならない。</td></tr><tr><td>FR-05</td><td>3次元位置を得たとき、システムは、IK により接近・把持・持ち上げ・移動・解放の関節軌道を生成して実行しなければならない。</td></tr><tr><td>FR-06</td><td>IK が解を得られない、または関節可動域を超えるとき、システムは、動作を実行せずエラーを返さなければならない。</td></tr><tr><td>FR-07</td><td>動作が完了したとき、システムは、次の条件をすべて満たす場合を成功と判定しなければならない。(1) 指定したブロックの中心が、水平方向で箱の内寸の内側にある。(2) ブロックの中心の高さが、箱の縁より低い。(3) 解放後 1 秒の時点で、ブロックの速度がしきい値(暫定 1 cm/s)以下である。</td></tr><tr><td>FR-08</td><td>システムは、<code>Robot</code> 抽象インターフェース(関節指令の送信と状態取得)の背後に実装を隠し、<code>SimRobot</code> と <code>So101Robot</code> を設定で切り替えられなければならない。</td></tr><tr><td>FR-09</td><td>システムは、実行ごとに画像・関節状態・指示・VLM 出力・結果を LeRobot 形式で記録しなければならない。</td></tr><tr><td>FR-10</td><td>システムは、実行をレンダリングして動画ファイルに保存できなければならない。</td></tr><tr><td>FR-11</td><td>システムは、実行部分を <code>Policy</code> インターフェースの背後に置き、IK 版と(v2 の)SmolVLA 版を差し替えられなければならない。</td></tr><tr><td>FR-12</td><td>システムは、ブロックの初期配置と指示を変えた複数試行を自動実行し、成功率を出力しなければならない。初期配置は、ロボット前方の作業台上の 20 cm × 20 cm の範囲(暫定)に、ブロック同士を 5 cm 以上離してランダムに置く。箱の位置は v1 では固定とする。</td></tr></tbody></table></div></details>
+      <details class="fold"><summary>非機能要件 NFR(どの品質で)<span class="count">7 件</span></summary><div class="tbl-wrap"><table class=""><thead><tr><th>ID</th><th>要件</th></tr></thead><tbody><tr><td>NFR-01</td><td>再現性: <code>uv sync</code> と1コマンドでシミュレーションが起動できる。乱数シードを固定できる。</td></tr><tr><td>NFR-02</td><td>安全性: 関節角・速度に上限を設け、実機では範囲外の指令を送らない(実機移行時の前提)。</td></tr><tr><td>NFR-03</td><td>機密: API キーをリポジトリに含めない。キーは <code>ANTHROPIC_API_KEY</code>、<code>OPENAI_API_KEY</code>、<code>GEMINI_API_KEY</code> の環境変数から読み、<code>.env.example</code> に変数名のみを記載する。未設定のプロバイダを選んだ場合は、起動時に明確なエラーを出す。</td></tr><tr><td>NFR-04</td><td>構成: ノードは dora-rs の dataflow.yml で配線し、ドライバの差し替えは設定のみで行える。</td></tr><tr><td>NFR-05</td><td>品質: 座標変換・IK・成功判定・JSON 検証などの純粋ロジックに単体テストを書く。</td></tr><tr><td>NFR-06</td><td>実行環境: GPU なしの Mac で、1試行(VLM の応答を含む)が 3 分以内(暫定)に完了する。</td></tr><tr><td>NFR-07</td><td>実機の安全: 実機を動かす場合は、次を満たす。(1) キー操作 1 回でトルクを切る非常停止。(2) 初回の動作確認は、速度上限を通常の 30% 以下にする。(3) 作業範囲の外の目標位置は拒否する。(4) 通信が途絶えたら、その場で停止する。</td></tr></tbody></table></div></details>
+      <details class="fold" open><summary>受け入れ基準 AC(完成の物差し)<span class="count">9 件</span></summary><div class="tbl-wrap"><table class=""><thead><tr><th>ID</th><th>基準</th></tr></thead><tbody><tr><td>AC-01</td><td>色の異なる3個のブロックで、指定した色を箱に入れる試行を 20 回実行し、成功率 70% 以上(暫定目標。実測後に見直す)。少なくとも1つのプロバイダでこれを満たす。</td></tr><tr><td>AC-02</td><td>存在しない色を指定したとき、動作せず理由が表示される。</td></tr><tr><td>AC-03</td><td><code>SimRobot</code> から <code>So101Robot</code> への切り替えが、設定変更のみで可能な構造になっている(実機接続は v1 の対象外)。</td></tr><tr><td>AC-04</td><td>API キーのあるプロバイダのそれぞれで、同一の画像・指示に対する検出結果を取得でき、設定変更のみで切り替わる。キーが無いプロバイダのテストはスキップし、レポートには「未評価」と記載する。</td></tr><tr><td>AC-05</td><td>プロバイダ別の検出誤差と成功率を、同一条件で比較した表をレポートに載せる。検出誤差は、VLM の出力から算出した3次元位置と、シミュレーション上の真の位置との距離(mm)とする。</td></tr><tr><td>AC-06</td><td>1〜3分の動画に、指示・VLM の検出結果・実行・成功判定が映っている。倍速の場合は、動画内に明記されている。</td></tr><tr><td>AC-07</td><td>単体テストが通り、対象ロジックのカバレッジが 80% 以上。</td></tr><tr><td>AC-08</td><td>レポートに、課題の概要、目的、システム構成、工夫した点、評価結果、講義内容との対応、今後の課題が書かれている。</td></tr><tr><td>AC-09</td><td>README の手順に従うと、新しい環境でシミュレーションと評価を再現できる。</td></tr></tbody></table></div></details>
+      <details class="fold"><summary>講義内容との対応<span class="count">6 回分</span></summary><div class="tbl-wrap"><table class=""><thead><tr><th>回</th><th>内容</th><th>本課題での使い方</th></tr></thead><tbody><tr><td>1</td><td>システムエンジニアリング、MLOps、基盤モデル</td><td>要件定義、成功率による評価、VLM の活用</td></tr><tr><td>3</td><td>実機データ収集、通信、仮想化、デバイス管理</td><td>遅延の計測、Docker、実機移行時の udev によるポート固定</td></tr><tr><td>4</td><td>パッケージング、ROS 2</td><td><code>uv</code> と Docker による環境固定。ROS 2 は任意</td></tr><tr><td>5</td><td>データ収集、LeRobot 模倣学習</td><td>LeRobot 形式での記録、v2 で SmolVLA に接続</td></tr><tr><td>6</td><td>OSS、dora-rs</td><td>dora-rs によるノード分割、OSS の利用とライセンス確認</td></tr><tr><td>RoboOps</td><td>検証、CI</td><td>試行の自動評価とテスト</td></tr></tbody></table></div></details>
+    </div>
+  </section>
+
+  <section class="block" id="v2" aria-labelledby="v2-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">09</span><h2 id="v2-h">v2: 実機で SmolVLA と比べる</h2><p>v1 の IK による実行部分を、実機で収集したデモで微調整した SmolVLA に差し替え、同一条件で比較する。</p></div>
+      <div class="figure-row">
+        <div class="card figure">
+          <svg viewBox="0 0 520 200" role="img" aria-labelledby="teleTitle">
+            <title id="teleTitle">リーダーアームを人が動かし、フォロワーアームが同じ動きをする様子</title>
+            <rect x="0" y="170" width="520" height="30" class="h-table"/>
+            <text x="60" y="30" class="h-label" style="fill:var(--v2)">リーダー(人が動かす)</text>
+            <text x="320" y="30" class="h-label" style="fill:var(--v2)">フォロワー(まねる)</text>
+            <g transform="translate(110,150)"><rect x="-14" y="0" width="28" height="20" class="h-link"/>
+              <g class="tele-a"><rect x="0" y="-5" width="70" height="10" rx="5" class="h-link"/><circle r="7" class="h-joint"/>
+                <g transform="translate(70,0)"><g class="tele-b"><rect x="0" y="-4" width="60" height="8" rx="4" class="h-link"/><circle r="6" class="h-joint"/></g></g></g></g>
+            <g transform="translate(370,150)"><rect x="-14" y="0" width="28" height="20" class="h-link"/>
+              <g class="tele-a lag"><rect x="0" y="-5" width="70" height="10" rx="5" class="h-link"/><circle r="7" class="h-joint"/>
+                <g transform="translate(70,0)"><g class="tele-b lag"><rect x="0" y="-4" width="60" height="8" rx="4" class="h-link"/><circle r="6" class="h-joint"/></g></g></g></g>
+            <path d="M200 90 C 250 60, 280 60, 320 90" fill="none" stroke="var(--v2)" stroke-width="2" stroke-dasharray="6 5" class="tele-wire"/>
+            <text x="222" y="58" class="h-label" style="fill:var(--v2)">関節角を送る</text>
+            <circle cx="260" cy="120" r="10" fill="var(--ng)" class="rec-dot"/>
+            <text x="276" y="124" class="h-label" style="fill:var(--ng)">REC → LeRobot 形式</text>
+          </svg>
+          <p class="note">人が見せたお手本 50 本(暫定)を、品質チェック(欠けたフレーム・時刻のずれ・範囲外の値)に通してから学習に使う。RoboOps ワークショップの「データ検証」を使う部分。</p>
+        </div>
+        <div>
+          <details class="fold" open><summary>v2 機能要件<span class="count">5 件</span></summary><div class="tbl-wrap"><table class=""><thead><tr><th>ID</th><th>要件</th></tr></thead><tbody><tr><td>FR-V2-01</td><td>システムは、実機の SO-101 を <code>So101Robot</code> 経由で動かし、v1 と同じ指示で pick &amp; place を実行できなければならない。</td></tr><tr><td>FR-V2-02</td><td>システムは、遠隔操作によるデモを LeRobot 形式で記録できなければならない。デモには、カメラ画像、関節状態、行動、言語指示を含める。遠隔操作には SO-101 のリーダーアームを使う(LeRobot のテレオペ機能)。</td></tr><tr><td>FR-V2-03</td><td>システムは、収集したデモで SmolVLA を微調整し、<code>Policy</code> インターフェースの実装として読み込めなければならない。</td></tr><tr><td>FR-V2-04</td><td>システムは、IK 版と SmolVLA 版を、同じ指示・同じ初期配置の範囲で実機評価し、成功率と所要時間を出力しなければならない。</td></tr><tr><td>FR-V2-05</td><td>システムは、デモの品質(欠損フレーム、時刻のずれ、関節値の範囲外)を学習前に検証し、不合格のデモを除外しなければならない(RoboOps ワークショップの内容)。</td></tr></tbody></table></div></details>
+          <details class="fold"><summary>v2 非機能要件<span class="count">3 件</span></summary><div class="tbl-wrap"><table class=""><thead><tr><th>ID</th><th>要件</th></tr></thead><tbody><tr><td>NFR-V2-01</td><td>実機の安全要件 NFR-07 を満たす。</td></tr><tr><td>NFR-V2-02</td><td>微調整の設定(データセット、ハイパーパラメータ、シード)を設定ファイルに残し、再現できる。</td></tr><tr><td>NFR-V2-03</td><td>実機のシリアルポート(フォロワー・リーダーの2本)とカメラは udev で固定名にする(第3回の内容)。</td></tr></tbody></table></div></details>
+          <details class="fold" open><summary>v2 受け入れ基準<span class="count">4 件</span></summary><div class="tbl-wrap"><table class=""><thead><tr><th>ID</th><th>基準</th></tr></thead><tbody><tr><td>AC-V2-01</td><td>デモを 50 本(暫定)以上収集し、検証を通過したものだけで微調整できている。</td></tr><tr><td>AC-V2-02</td><td>実機で IK 版と SmolVLA 版をそれぞれ 10 回(暫定)試行し、成功率と所要時間の比較表をレポートに載せる。</td></tr><tr><td>AC-V2-03</td><td>SmolVLA 版の実機での成功率 50% 以上(暫定目標)。満たさない場合も、失敗の分析をレポートに載せれば v2 完了とする。</td></tr><tr><td>AC-V2-04</td><td>試行中に非常停止が機能することを、実機で 1 回以上確認している。</td></tr></tbody></table></div></details>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="schedule" aria-labelledby="schedule-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">10</span><h2 id="schedule-h">スケジュールとマイルストーン</h2><p>提出期限が未確認のため、2026-10-18 を起点にした仮の日程。期限が分かれば後ろから引き直す。</p></div>
+      <div class="card gantt" id="gantt" style="--g-label: 10rem"><div class="g-axis"><span style="left:0.00%">10/18</span><span style="left:20.00%">10/25</span><span style="left:40.00%">11/01</span><span style="left:60.00%">11/08</span><span style="left:80.00%">11/15</span><span style="left:100.00%">11/22</span></div><div class="g-rows"><div class="g-row"><div class="lbl">10/18〜10/25<br><span style="color:var(--muted)">フェーズ1〜2</span></div><div class="g-track"><div class="g-bar v1" style="left:0.00%;width:20.00%;transition-delay:0.00s" title="フェーズ1〜2: 雛形、シーン、環境固定(uv / Docker)"></div></div></div><div class="g-row"><div class="lbl">10/26〜11/01<br><span style="color:var(--muted)">フェーズ3〜5</span></div><div class="g-track"><div class="g-bar v1" style="left:22.86%;width:17.14%;transition-delay:0.12s" title="フェーズ3〜5: IK、VLM 接続、プロバイダ比較、自動評価、LeRobot 形式での記録"></div></div></div><div class="g-row"><div class="lbl">11/02〜11/08<br><span style="color:var(--muted)">実機の準備</span></div><div class="g-track"><div class="g-bar v2" style="left:42.86%;width:17.14%;transition-delay:0.24s" title="実機の準備(キャリブレーション、udev、カメラ設置)、デモ収集"></div></div></div><div class="g-row"><div class="lbl">11/09〜11/15<br><span style="color:var(--muted)">SmolVLA の微調整、比較評価</span></div><div class="g-track"><div class="g-bar v2" style="left:62.86%;width:17.14%;transition-delay:0.36s" title="SmolVLA の微調整、比較評価"></div></div></div><div class="g-row"><div class="lbl">11/16〜11/22<br><span style="color:var(--muted)">動画の撮影・編集、レポート執筆、見直し</span></div><div class="g-track"><div class="g-bar sub" style="left:82.86%;width:17.14%;transition-delay:0.48s" title="動画の撮影・編集、レポート執筆、見直し"></div></div></div><div class="g-ms-layer"><div class="g-ms" style="left:20.00%"><b>M1</b></div><div class="g-ms key" style="left:40.00%"><b>M2 v1 完了</b></div><div class="g-ms" style="left:60.00%"><b>M3</b></div><div class="g-ms key" style="left:80.00%"><b>M4 v2 完了</b></div><div class="g-ms" style="left:100.00%"><b>M5</b></div><div class="g-today" style="left:0.00%"><i>今日</i></div></div></div></div>
+      <div class="ms-cards"><article class="card ms-card"><div class="d">M1 · 10/25</div><div class="k">雛形</div><p>雛形、MuJoCo で SO-101 を表示・駆動、ブロック・箱・カメラのシーン完成</p></article><article class="card ms-card key"><div class="d">M2 · 11/01</div><div class="k">v1 完了</div><p>v1 完了: VLM(4プロバイダ)→ 座標変換 → IK の pick &amp; place がシミュレーションで動き、20 試行の成功率を計測。動画の初版</p></article><article class="card ms-card"><div class="d">M3 · 11/08</div><div class="k">実機用 <code>So101Robot</code> の実装と動作確認</div><p>実機用 <code>So101Robot</code> の実装と動作確認、実機デモ収集の開始</p></article><article class="card ms-card key"><div class="d">M4 · 11/15</div><div class="k">v2 完了</div><p>v2 完了: SmolVLA の微調整と、IK 版との比較評価</p></article><article class="card ms-card"><div class="d">M5 · 11/22</div><div class="k">動画(1〜3分)</div><p>動画(1〜3分)、レポート、コード一式を仕上げて提出</p></article></div>
+      <h3>前提とバッファ</h3>
+      <ul class="list-plain"><li>実機を使える時間が未確認。M3 以降は、実機の利用可否で前後する。</li><li>v2 が間に合わない場合は、v1 のみで提出する(v1 だけで課題として成立する)。その判断は M3 の時点で行う。</li><li>M5 は提出期限の 3 日以上前に置く。</li></ul>
+    </div>
+  </section>
+
+  <section class="block" id="tasks" aria-labelledby="tasks-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">11</span><h2 id="tasks-h">タスク 49 件</h2><p>約半日〜1 日の粒度。純粋なロジックはテストを先に書く(RED → GREEN → REFACTOR)。</p></div>
+      <div class="filter seg" role="group" aria-label="タスクの絞り込み" id="taskFilter">
+        <button type="button" data-f="all" aria-pressed="true">すべて</button>
+        <button type="button" data-f="v1" aria-pressed="false">v1</button>
+        <button type="button" data-f="v2" aria-pressed="false">v2</button>
+        <button type="button" data-f="sub" aria-pressed="false">提出</button>
+      </div>
+      <details class="fold" data-kind="v1" open><summary><span class="phase-tag v1">v1</span>フェーズ1: 雛形とシミュレーション基盤<span class="count">7 タスク · (〜M1 10/25)</span></summary><div class="tbl-wrap"><table class="tasks-tbl"><thead><tr><th>ID</th><th>タスク</th><th>依存</th><th>要件</th><th>完了条件</th></tr></thead><tbody><tr><td>T-01</td><td>プロジェクト雛形: <code>pyproject.toml</code>(uv)、ディレクトリ、<code>.env.example</code>、<code>.gitignore</code>、README の骨子</td><td>-</td><td>NFR-01, NFR-03</td><td><code>uv sync</code> が通り、空のテストが走る</td></tr><tr><td>T-02</td><td>SO-101 モデルの取得と配置(<code>assets/so101/</code>)、ライセンス表示の同梱</td><td>T-01</td><td>前提(ライセンス)</td><td>MJCF が読み込める。Apache-2.0 の表示がある</td></tr><tr><td>T-03</td><td>MuJoCo で SO-101 を表示し、6 関節を位置指令で動かす確認スクリプト</td><td>T-02</td><td>FR-01</td><td>ビューアで各関節が動く。関節順を <code>joint_names</code> に固定</td></tr><tr><td>T-04</td><td><code>Robot</code> 抽象と <code>SimRobot</code>(テスト先行)</td><td>T-03</td><td>FR-08</td><td>指令 → 状態取得のテストが通る</td></tr><tr><td>T-05</td><td>シーン追加: 作業台、ブロック 3 個、箱、固定カメラ(RGB+深度)</td><td>T-03</td><td>FR-01</td><td>画像と深度が取得でき、画像を保存して目視確認できる</td></tr><tr><td>T-06</td><td>初期配置の乱数生成(シード固定、20cm 四方、5cm 以上離す)(テスト先行)</td><td>T-05</td><td>FR-12, NFR-01</td><td>同じシードで同じ配置。間隔条件のテストが通る</td></tr><tr><td>T-07</td><td>dora-rs の最小動作確認(Mac で <code>dora run</code>、camera → 表示)</td><td>T-01</td><td>NFR-04</td><td>動けば dataflow 採用。動かなければ代替案(multiprocessing)に決定し設計書を更新</td></tr></tbody></table></div></details><details class="fold" data-kind="v1"><summary><span class="phase-tag v1">v1</span>フェーズ2: 知覚・IK・安全<span class="count">8 タスク · (〜M1 10/25 〜 10/29)</span></summary><div class="tbl-wrap"><table class="tasks-tbl"><thead><tr><th>ID</th><th>タスク</th><th>依存</th><th>要件</th><th>完了条件</th></tr></thead><tbody><tr><td>T-08</td><td><code>perception/projection</code>: ピクセル+深度 → カメラ座標 → ロボット座標(テスト先行)</td><td>T-05</td><td>FR-04</td><td>既知の点で往復誤差が許容内(例 1mm 以下)</td></tr><tr><td>T-09</td><td>sim 用 calibration の自動生成(シーン定義から <code>T_base_cam</code> と内部パラメータ)</td><td>T-08</td><td>FR-04</td><td>真値のブロック位置を画像から復元して誤差を確認</td></tr><tr><td>T-10</td><td><code>safety/limits</code>: クリップ、速度制限、作業範囲チェック(テスト先行)</td><td>T-04</td><td>NFR-02, NFR-07</td><td>境界ケースのテストが通る</td></tr><tr><td>T-11</td><td><code>policy/ik</code>: DLS による IK と姿勢拘束、<code>IkError</code>(テスト先行)</td><td>T-03</td><td>FR-05, FR-06</td><td>到達可能な点で収束、可動域外は <code>IkError</code></td></tr><tr><td>T-12</td><td><code>policy/trajectory</code>: pre_grasp 〜 place の軌道生成、設定ファイル化</td><td>T-11, T-10</td><td>FR-05</td><td>軌道が関節上限・速度上限を守る</td></tr><tr><td>T-13</td><td>固定位置での pick &amp; place(VLM なし)を sim で実行</td><td>T-04, T-06, T-12</td><td>FR-05</td><td>真値の位置を使い、ブロックを箱に入れられる。動画を保存</td></tr><tr><td>T-14</td><td>把持の調整(摩擦、質量、<code>forcerange</code>、ブロックサイズ)</td><td>T-13</td><td>リスク</td><td>固定位置で成功率が安定(10 回中 8 回以上を目安)</td></tr><tr><td>T-15</td><td><code>eval/judge</code>: 成功判定(箱の内側、縁より低い、静止)(テスト先行)</td><td>T-05</td><td>FR-07</td><td>境界ケースのテストが通る</td></tr></tbody></table></div></details><details class="fold" data-kind="v1"><summary><span class="phase-tag v1">v1</span>フェーズ3: VLM 接続<span class="count">10 タスク · (〜M2 11/01)</span></summary><div class="tbl-wrap"><table class="tasks-tbl"><thead><tr><th>ID</th><th>タスク</th><th>依存</th><th>要件</th><th>完了条件</th></tr></thead><tbody><tr><td>T-16</td><td>各プロバイダの公式ドキュメント確認(画像入力、構造化出力、座標の扱い、モデル名)と <code>configs/vlm.yaml</code> の作成</td><td>T-01</td><td>FR-02a, リスク</td><td>4 プロバイダのモデル名・呼び出し方・座標形式をメモに記録</td></tr><tr><td>T-17</td><td><code>vlm/schema</code>: <code>Detection</code>、<code>PlanResult</code>、JSON 検証、座標変換(テスト先行)</td><td>T-16</td><td>FR-02, FR-02b, FR-03</td><td>不正 JSON・対象なし・座標系違いのテストが通る</td></tr><tr><td>T-18</td><td><code>vlm/base</code> と共通プロンプト、リトライ、タイムアウト、キャッシュ(テスト先行)</td><td>T-17</td><td>FR-02a, FR-03a</td><td>SDK をモックしたテストが通る</td></tr><tr><td>T-19</td><td><code>AnthropicClient</code></td><td>T-18</td><td>FR-02a</td><td>実 API で sim 画像の検出ができる(キーがある場合)</td></tr><tr><td>T-20</td><td><code>OpenAIClient</code></td><td>T-18</td><td>FR-02a</td><td>同上</td></tr><tr><td>T-21</td><td><code>GeminiClient</code></td><td>T-18</td><td>FR-02a</td><td>同上</td></tr><tr><td>T-22</td><td><code>OllamaClient</code>(Gemma。モデルのサイズ選定とメモリ実測を含む)</td><td>T-18</td><td>FR-02c</td><td>ローカルで検出でき、使用メモリを記録</td></tr><tr><td>T-23</td><td>検出結果の可視化(画像に枠を描画)と目視確認ツール</td><td>T-19</td><td>FR-10</td><td>枠が正しい位置に出ているか確認できる</td></tr><tr><td>T-24</td><td>VLM → perception → IK の結合(キャッシュ済み VLM 結果で 1 試行を通す)</td><td>T-13, T-17, T-09</td><td>FR-02〜FR-05</td><td>指示から実行、成功判定まで 1 試行が通る</td></tr><tr><td>T-25</td><td>dora-rs でノード分割と <code>dataflow.yml</code> の配線</td><td>T-07, T-24</td><td>NFR-04</td><td><code>dora run</code> で T-24 と同じ結果になる</td></tr></tbody></table></div></details><details class="fold" data-kind="v1"><summary><span class="phase-tag v1">v1</span>フェーズ4: 評価・記録・動画<span class="count">6 タスク · (〜M2 11/01)</span></summary><div class="tbl-wrap"><table class="tasks-tbl"><thead><tr><th>ID</th><th>タスク</th><th>依存</th><th>要件</th><th>完了条件</th></tr></thead><tbody><tr><td>T-26</td><td><code>eval/runner</code>: 複数試行の自動実行、<code>trials.csv</code>、失敗の分類</td><td>T-24, T-15</td><td>FR-12</td><td>20 試行を 1 コマンドで実行し、成功率が出る</td></tr><tr><td>T-27</td><td><code>record/lerobot_writer</code>: LeRobot 形式での記録(仕様確認を含む)</td><td>T-24</td><td>FR-09</td><td>1 試行がデータセットとして保存・読み込みできる</td></tr><tr><td>T-28</td><td><code>scripts/render_video.py</code>: 実行の録画。指示と検出枠と成功判定を重ねる</td><td>T-23, T-26</td><td>FR-10, AC-06</td><td>1〜3 分に収まる動画の初版ができる</td></tr><tr><td>T-29</td><td>プロバイダ別の評価(同一シード・同一条件)と比較表、検出誤差(真値との距離 mm)</td><td>T-19〜T-22, T-26</td><td>AC-01, AC-04, AC-05</td><td>成功率 70% の判定。キーのないプロバイダは「未評価」</td></tr><tr><td>T-30</td><td>単体テストの整理とカバレッジ測定(80%)、CI(GitHub Actions)</td><td>T-26</td><td>AC-07</td><td>CI が通り、カバレッジが 80% 以上</td></tr><tr><td>T-31</td><td>README: 再現手順、ライセンス、設定方法。Docker 化(任意)</td><td>T-26</td><td>AC-09, NFR-01</td><td>新しい環境で README の手順どおりに再現できる</td></tr><tr class="ms"><td><strong>M2</strong></td><td><strong>v1 完了の確認</strong></td><td>T-29, T-30, T-31</td><td>AC-01〜09</td><td>受け入れ基準 AC-01〜09 を満たす(または未達の理由を記録)</td></tr></tbody></table></div></details><details class="fold" data-kind="v2"><summary><span class="phase-tag v2">v2</span>フェーズ5: 実機準備<span class="count">7 タスク · (〜M3 11/08)</span></summary><div class="tbl-wrap"><table class="tasks-tbl"><thead><tr><th>ID</th><th>タスク</th><th>依存</th><th>要件</th><th>完了条件</th></tr></thead><tbody><tr><td>T-32</td><td>LeRobot の導入と SO-101 の動作確認(フォロワー・リーダー、キャリブレーション)</td><td>M2</td><td>FR-V2-01</td><td>リーダーの動きにフォロワーが追従する</td></tr><tr><td>T-33</td><td>udev でフォロワー・リーダー・カメラを固定名にする(Linux 機が必要か確認。Mac の場合の代替も検討)</td><td>T-32</td><td>NFR-V2-03</td><td>再起動後も同じ名前で認識される</td></tr><tr><td>T-34</td><td><code>So101Robot</code>: LeRobot ドライバのラップ、単位変換(ラジアンへ)(テスト先行)</td><td>T-32, T-04</td><td>FR-08, FR-V2-01</td><td>指令・状態取得が <code>SimRobot</code> と同じ単位で動く</td></tr><tr><td>T-35</td><td>実機の安全: 非常停止(トルク OFF)、初回の速度制限 30%、通信途絶で停止</td><td>T-10, T-34</td><td>NFR-07</td><td>非常停止が機能することを確認</td></tr><tr><td>T-36</td><td>実機カメラの設置とキャリブレーション(<code>T_base_cam</code> の計測)</td><td>T-33</td><td>FR-04</td><td>既知の位置の物体で誤差を確認</td></tr><tr><td>T-37</td><td>実機で IK 版の pick &amp; place を実行(低速から)</td><td>T-34〜T-36</td><td>FR-V2-01</td><td>実機でブロックを箱に入れられる</td></tr><tr><td>T-38</td><td>実機デモ収集の開始(リーダーでテレオペ、LeRobot 形式)</td><td>T-32, T-27</td><td>FR-V2-02</td><td>数本収集し、読み込める</td></tr></tbody></table></div></details><details class="fold" data-kind="v2"><summary><span class="phase-tag v2">v2</span>フェーズ6: v2<span class="count">7 タスク · (〜M4 11/15)</span></summary><div class="tbl-wrap"><table class="tasks-tbl"><thead><tr><th>ID</th><th>タスク</th><th>依存</th><th>要件</th><th>完了条件</th></tr></thead><tbody><tr><td>T-39</td><td>デモの品質検証(欠損、時刻ずれ、範囲外)と不合格の除外(テスト先行)</td><td>T-38</td><td>FR-V2-05</td><td>検証スクリプトが不良デモを検出する</td></tr><tr><td>T-40</td><td>デモ 50 本以上の収集</td><td>T-39</td><td>AC-V2-01</td><td>検証を通過したデモが 50 本以上</td></tr><tr><td>T-41</td><td>SmolVLA 微調整の環境準備(GPU 環境の確保。Colab 等)と、公式手順の確認</td><td>T-38</td><td>FR-V2-03</td><td>小規模データで学習が走る</td></tr><tr><td>T-42</td><td>微調整の実行と設定の保存(データ、ハイパーパラメータ、シード)</td><td>T-40, T-41</td><td>FR-V2-03, NFR-V2-02</td><td>学習済みモデルが保存される</td></tr><tr><td>T-43</td><td><code>SmolVlaPolicy</code> と <code>dataflow_v2.yml</code></td><td>T-42, T-34</td><td>FR-11, FR-V2-03</td><td>実機で SmolVLA 版が動作する</td></tr><tr><td>T-44</td><td>実機評価: IK 版と SmolVLA 版を各 10 回、成功率と所要時間</td><td>T-37, T-43</td><td>FR-V2-04, AC-V2-02</td><td>比較表ができる</td></tr><tr><td>T-45</td><td>失敗の分析</td><td>T-44</td><td>AC-V2-03</td><td>失敗の種類と考察が記録される</td></tr><tr class="ms"><td><strong>M4</strong></td><td><strong>v2 完了の確認</strong></td><td>T-44, T-45</td><td>AC-V2-01〜04</td><td>受け入れ基準を満たす(または未達の理由を記録)</td></tr></tbody></table></div></details><details class="fold" data-kind="sub"><summary><span class="phase-tag sub">提出</span>フェーズ7: 提出<span class="count">4 タスク · (〜M5 11/22)</span></summary><div class="tbl-wrap"><table class="tasks-tbl"><thead><tr><th>ID</th><th>タスク</th><th>依存</th><th>要件</th><th>完了条件</th></tr></thead><tbody><tr><td>T-46</td><td>動画の撮影・編集(1〜3 分、倍速の明記)</td><td>M4</td><td>AC-06</td><td>指示・検出・実行・判定が映っている</td></tr><tr><td>T-47</td><td>レポート執筆(目的、構成、工夫、評価、講義との対応、今後の課題)</td><td>M4</td><td>AC-08</td><td>全項目が書かれている</td></tr><tr><td>T-48</td><td>コード一式の整理、README、ライセンス、秘密情報の確認</td><td>M4</td><td>AC-09, NFR-03</td><td>API キーが含まれていない。再現手順が通る</td></tr><tr><td>T-49</td><td>提出物の最終確認</td><td>T-46〜T-48</td><td>-</td><td>動画・コード・レポートがそろい、期限の 3 日以上前に提出できる</td></tr></tbody></table></div></details>
+      <h3>判断ポイント</h3>
+      <ul class="list-plain"><li><strong>T-07</strong>: dora-rs が Mac で動かなければ、代替案に切り替える。</li><li><strong>T-14</strong>: 把持が安定しなければ、ブロックの大きさ・グリッパーの設定を見直す。1 日以上かかる場合は M2 の日程を再検討する。</li><li><strong>M3(11/08)</strong>: 実機の利用可否とデモ収集の見込みを見て、v2 を続けるか、v1 のみで提出するかを決める。</li><li><strong>提出期限が確定したとき</strong>: 全体の日程を引き直す。</li></ul>
+    </div>
+  </section>
+
+  <section class="block" id="risk" aria-labelledby="risk-h">
+    <div class="wrap">
+      <div class="sec-head"><span class="sec-no">12</span><h2 id="risk-h">リスクと未決事項</h2><p>起こりそうな問題と、その対策。まだ決まっていないこと。</p></div>
+      <div class="two-col">
+        <div><div class="tbl-wrap"><table class=""><thead><tr><th class="plain">リスク</th><th>対応</th></tr></thead><tbody><tr><td class="plain">把持が不安定</td><td>大きめのブロック、摩擦・グリッパーの調整から始める</td></tr><tr><td class="plain">VLM の座標精度が低い</td><td>検出の枠で出力させ、中心を取る。失敗時は再試行</td></tr><tr><td class="plain">API 利用料・応答時間</td><td>1試行1回の呼び出しに抑える。結果をキャッシュして再現実験を可能にする</td></tr><tr><td class="plain">プロバイダ間で座標精度・出力形式が異なる</td><td>共通スキーマと JSON 検証で吸収する。比較結果はレポートに記載する</td></tr><tr><td class="plain">Gemma は小型だと検出精度が低い可能性、画像非対応のサイズがある</td><td>画像に対応するサイズを Ollama のモデル一覧で確認して選ぶ。モデルサイズを設定で選べるようにし、精度を実測する。低い場合は比較表に限界として記載する</td></tr><tr><td class="plain">ローカルモデルが Mac のメモリに収まらない</td><td>小さいサイズに下げる。使用メモリを実測して記録する</td></tr><tr><td class="plain">モデル名・API 仕様の変更</td><td>モデル名はコードに固定せず設定ファイルに置く。実装前に各公式ドキュメントで確認する</td></tr><tr><td class="plain">実機とのずれ</td><td>座標変換を <code>calibration</code> として分離する</td></tr></tbody></table></div></div>
+        <div class="card"><b>未決事項</b><ul class="list-plain" style="margin-top:0.5rem"><li>各プロバイダの具体的なモデル名(実装時に公式ドキュメントで確認して設定に記載)</li><li>実機カメラの種類・設置位置</li><li>v2 の実機デモ収集に使える時間</li><li>提出期限</li><li>v2 の微調整に使う GPU 環境(Google Colab など)</li></ul></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">出典: <code>docs/requirements.md</code>、<code>docs/design.md</code>、<code>docs/tasks.md</code> から生成。数値で「暫定」とあるものは実測後に見直す。</div>
+</footer>
+
+<script>
+(() => {
+  "use strict";
+
+  const REDUCED_MOTION = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const $ = (sel, root = document) => root.querySelector(sel);
+  const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+  const el = (tag, props = {}, children = []) => {
+    const node = document.createElement(tag);
+    Object.entries(props).forEach(([k, v]) => {
+      if (k === "class") node.className = v;
+      else if (k === "text") node.textContent = v;
+      else node.setAttribute(k, v);
+    });
+    children.forEach((c) => node.append(c));
+    return node;
+  };
+
+  /* ---------- theme ---------- */
+  const THEME_KEY = "so101-req-theme";
+  const applyTheme = (t) => { if (t) document.documentElement.dataset.theme = t; };
+  try { applyTheme(localStorage.getItem(THEME_KEY)); } catch (_) { /* storage unavailable */ }
+  $("#themeBtn").addEventListener("click", () => {
+    const cur = document.documentElement.dataset.theme
+      || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    applyTheme(next);
+    try { localStorage.setItem(THEME_KEY, next); } catch (_) { /* storage unavailable */ }
+  });
+
+  /* ---------- hero caption synced to the CSS animation ---------- */
+  const HERO_STEPS = [
+    [0, 8, "指示を受け取る", "ユーザーが「赤いブロックを箱に入れて」と頼む"],
+    [8, 18, "VLM が見つける", "カメラ画像から、赤いブロックと箱の枠を返す"],
+    [18, 36, "IK で近づく", "枠 → 3D 位置 → 関節角を計算して手先を運ぶ"],
+    [36, 40, "掴む", "グリッパーを閉じる"],
+    [40, 62, "運ぶ", "持ち上げて、箱の真上へ"],
+    [62, 70, "置く", "下ろしてグリッパーを開く"],
+    [70, 80, "成功判定", "箱の中に入って静止したか確かめる"],
+    [80, 100, "戻る", "最初の姿勢へ。次の指示を待つ"],
+  ];
+  const heroSteps = $("#heroSteps");
+  HERO_STEPS.forEach(() => heroSteps.append(el("li")));
+  const heroText = $("#heroText");
+  const heroSvg = $("#heroSvg");
+  const heroToggle = $("#heroToggle");
+  const HERO_DURATION_MS = 12000;
+  let lastStep = -1;
+
+  const showHeroStep = (idx) => {
+    if (idx === lastStep) return;
+    lastStep = idx;
+    const [, , title, sub] = HERO_STEPS[idx];
+    heroText.replaceChildren(document.createTextNode(title), el("small", { text: sub }));
+    $$("li", heroSteps).forEach((li, i) => {
+      li.classList.toggle("is-on", i === idx);
+      li.classList.toggle("is-done", i < idx);
+    });
+  };
+  const heroAnim = () => {
+    const target = heroSvg && heroSvg.querySelector(".h-j1");
+    const anims = target && target.getAnimations ? target.getAnimations() : [];
+    return anims[0];
+  };
+  const tickHero = () => {
+    const anim = heroAnim();
+    if (anim && typeof anim.currentTime === "number") {
+      const pct = ((anim.currentTime % HERO_DURATION_MS) / HERO_DURATION_MS) * 100;
+      const idx = HERO_STEPS.findIndex(([a, b]) => pct >= a && pct < b);
+      if (idx >= 0) showHeroStep(idx);
+    }
+    requestAnimationFrame(tickHero);
+  };
+  if (REDUCED_MOTION) {
+    showHeroStep(4);
+    heroToggle.hidden = true;
+  } else {
+    requestAnimationFrame(tickHero);
+    heroToggle.addEventListener("click", () => {
+      const paused = heroSvg.classList.toggle("paused");
+      heroToggle.setAttribute("aria-pressed", String(paused));
+      heroToggle.textContent = paused ? "再生" : "一時停止";
+    });
+  }
+
+  /* ---------- pipeline stepper ---------- */
+  const PIPE = [
+    { id: "inst", n: "IN", t: "指示", s: "テキスト入力",
+      d: "ユーザーが言葉で頼む。例:「赤いブロックを箱に入れて」。", io: [["入力", "ユーザー"], ["出力", "instruction"]],
+      data: 'instruction = "赤いブロックを箱に入れて"' },
+    { id: "camera", n: "01", t: "camera", s: "画像と深度",
+      d: "カメラで RGB 画像と深度(距離)を撮る。sim は MuJoCo のレンダラ、実機は実際のカメラ。", io: [["入力", "タイマー"], ["出力", "rgb, depth, intrinsics"]],
+      data: "rgb   : 480×640×3 (uint8)\ndepth : 480×640   (m)\nintrinsics: fx, fy, cx, cy" },
+    { id: "vlm", n: "02", t: "vlm_planner", s: "VLM が決める",
+      d: "画像と指示を VLM に渡し、「掴む物」と「置き場所」の枠を JSON で受け取る。不正な JSON や対象なしなら、動かずに理由を表示する。", io: [["入力", "rgb, instruction"], ["出力", "detections"]],
+      data: '{\n  "pick":  {"label": "red block", "bbox_px": [402, 210, 438, 252]},\n  "place": {"label": "box",       "bbox_px": [520, 180, 610, 260]}\n}', skipV2: true },
+    { id: "perception", n: "03", t: "perception", s: "2D → 3D",
+      d: "枠の中心ピクセルと深度から、ロボットの根元から見た 3D 位置を計算する(04 章)。", io: [["入力", "detections, depth"], ["出力", "targets_3d"]],
+      data: "pick  = (0.18, -0.02, 0.01) m\nplace = (0.22,  0.12, 0.01) m", skipV2: true },
+    { id: "policy", n: "04", t: "policy (IK)", s: "関節角を計算",
+      d: "IK で、手先を目標に届かせる関節角を逆算し、接近 → 掴む → 持ち上げ → 移動 → 置く の軌道を作る。届かなければ動かずにエラー。",
+      v2t: "policy (SmolVLA)", v2s: "AI が直接動かす",
+      v2d: "SmolVLA が、画像と言葉の指示から直接、関節の動きを出す。VLM と 2D → 3D の段を通らない。",
+      io: [["入力", "targets_3d, robot_state"], ["出力", "joint_trajectory"]],
+      data: "pre_grasp → grasp → close → lift\n→ pre_place → place → open\n(6 関節 × 時刻ごとの角度 [rad])" },
+    { id: "motion", n: "05", t: "motion", s: "安全フィルタ",
+      d: "可動域、速度の上限、作業範囲を確かめてからロボットに送る。おかしな指令はここで止める(07 章)。", io: [["入力", "joint_trajectory"], ["出力", "joint_command"]],
+      data: "clip(ctrlrange)\nlimit(速度 ≤ 上限)\nreject(作業範囲の外)" },
+    { id: "robot", n: "06", t: "robot", s: "Sim / 実機",
+      d: "関節指令を実行する。SimRobot と So101Robot は同じ使い方(単位はラジアン)で、設定だけで差し替える。", io: [["入力", "joint_command"], ["出力", "robot_state"]],
+      data: "robot: sim   # configs/sim.yaml\nrobot: so101 # configs/real.yaml" },
+    { id: "eval", n: "07", t: "evaluator / recorder", s: "判定と記録",
+      d: "成功かどうかを判定し(06 章)、画像・関節・指示・結果を LeRobot 形式で保存する。20 回まとめて回して成功率を出す。", io: [["入力", "robot_state, 真値"], ["出力", "trials.csv, データセット"]],
+      data: "seed, provider, success, fail_type, time_s, err_mm\n7, gemini, true, -, 41.2, 6.3" },
+  ];
+  const pipeEl = $("#pipe");
+  const pipeCard = $("#pipeCard");
+  const pipeData = $("#pipeData");
+  let pipeVer = "v1";
+  let pipeIdx = 0;
+  let pipeTimer = null;
+
+  PIPE.forEach((p, i) => {
+    const li = el("li", { tabindex: "0", role: "button", "aria-label": `${p.t} を表示` }, [
+      el("span", { class: "n", text: p.n }), el("span", { class: "t", text: p.t }), el("span", { class: "s", text: p.s }),
+    ]);
+    li.addEventListener("click", () => { stopPipe(); setPipe(i); });
+    li.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); stopPipe(); setPipe(i); } });
+    pipeEl.append(li);
+  });
+  const visibleIdx = () => PIPE.map((p, i) => (pipeVer === "v2" && p.skipV2 ? -1 : i)).filter((i) => i >= 0);
+
+  const renderPipe = () => {
+    $$("li", pipeEl).forEach((li, i) => {
+      const p = PIPE[i];
+      const isV2Policy = pipeVer === "v2" && p.v2t;
+      $(".t", li).textContent = isV2Policy ? p.v2t : p.t;
+      $(".s", li).textContent = isV2Policy ? p.v2s : p.s;
+      li.classList.toggle("is-skipped", pipeVer === "v2" && Boolean(p.skipV2));
+      li.classList.toggle("is-v2", Boolean(isV2Policy));
+      li.classList.toggle("is-active", i === pipeIdx);
+      li.classList.toggle("is-done", i < pipeIdx && !(pipeVer === "v2" && p.skipV2));
+      li.setAttribute("aria-current", i === pipeIdx ? "step" : "false");
+    });
+    const p = PIPE[pipeIdx];
+    const isV2Policy = pipeVer === "v2" && p.v2t;
+    const dl = el("dl", { class: "io" });
+    p.io.forEach(([k, v]) => { dl.append(el("dt", { text: k }), el("dd", { text: v })); });
+    pipeCard.replaceChildren(
+      el("div", { class: "n mono", text: `STEP ${p.n}` }),
+      el("h3", { text: isV2Policy ? p.v2t : p.t }),
+      el("p", { text: isV2Policy ? p.v2d : p.d }),
+      dl,
+    );
+    pipeData.textContent = isV2Policy
+      ? "obs = {rgb, robot_state}\ntask = \"赤いブロックを箱に入れて\"\naction = smolvla(obs, task)  # 関節の目標"
+      : p.data;
+    [pipeCard, pipeData].forEach((n) => { n.classList.remove("fade-swap"); void n.offsetWidth; n.classList.add("fade-swap"); });
+  };
+  const setPipe = (i) => {
+    const vis = visibleIdx();
+    pipeIdx = vis.includes(i) ? i : vis.find((v) => v > i) ?? vis[vis.length - 1];
+    renderPipe();
+  };
+  const stepPipe = (dir) => {
+    const vis = visibleIdx();
+    const pos = vis.indexOf(pipeIdx);
+    setPipe(vis[(pos + dir + vis.length) % vis.length]);
+  };
+  const stopPipe = () => {
+    if (pipeTimer) clearInterval(pipeTimer);
+    pipeTimer = null;
+    $("#pipePlay").setAttribute("aria-pressed", "false");
+    $("#pipePlay").textContent = "▶ 自動再生";
+  };
+  $("#pipePrev").addEventListener("click", () => { stopPipe(); stepPipe(-1); });
+  $("#pipeNext").addEventListener("click", () => { stopPipe(); stepPipe(1); });
+  $("#pipePlay").addEventListener("click", (e) => {
+    if (pipeTimer) { stopPipe(); return; }
+    e.currentTarget.setAttribute("aria-pressed", "true");
+    e.currentTarget.textContent = "■ 停止";
+    pipeTimer = setInterval(() => stepPipe(1), 2200);
+  });
+  $$(".pipe-controls .seg button").forEach((b) => b.addEventListener("click", () => {
+    pipeVer = b.dataset.ver;
+    $$(".pipe-controls .seg button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    setPipe(pipeIdx);
+  }));
+  renderPipe();
+
+  /* ---------- coordinate steps ---------- */
+  const coordSteps = $$("#coordSteps li");
+  let coordIdx = 0;
+  let coordTimer = null;
+  const setCoord = (n) => {
+    coordIdx = n;
+    coordSteps.forEach((li) => li.classList.toggle("is-on", Number(li.dataset.cstep) === n));
+    $$("#coordSvg [data-cstep]").forEach((g) => {
+      g.classList.add("from-y");
+      g.classList.toggle("is-on", Number(g.dataset.cstep) <= n);
+    });
+  };
+  coordSteps.forEach((li) => li.addEventListener("click", () => {
+    if (coordTimer) clearInterval(coordTimer);
+    coordTimer = null;
+    setCoord(Number(li.dataset.cstep));
+  }));
+
+  /* ---------- VLM provider tabs ---------- */
+  const VLM = [
+    { id: "anthropic", name: "Anthropic", raw: '{"pick": {"label": "red block",\n          "bbox": [402, 210, 438, 252]}}',
+      out: "[402, 210, 438, 252]", note: "プロンプトで「ピクセル座標 [x1, y1, x2, y2] で返して」と指定する。そのまま使える。キー: ANTHROPIC_API_KEY" },
+    { id: "openai", name: "OpenAI", raw: '{"pick": {"label": "red block",\n          "bbox": [402, 210, 438, 252]}}',
+      out: "[402, 210, 438, 252]", note: "同じくピクセル座標を指定する。構造化出力の機能があれば使い、なければ JSON を検証する。キー: OPENAI_API_KEY" },
+    { id: "gemini", name: "Gemini", raw: '{"label": "red block",\n "box_2d": [437, 628, 525, 684]}\n# [y1, x1, y2, x2]、0〜1000 に正規化',
+      out: "x1 = 628 / 1000 × 640 = 402\ny1 = 437 / 1000 × 480 = 210\nx2 = 684 / 1000 × 640 = 438\ny2 = 525 / 1000 × 480 = 252\n→ [402, 210, 438, 252]",
+      note: "縦横の順番と 0〜1000 の正規化を、画像サイズ(640×480)を使ってピクセルに戻す。キー: GEMINI_API_KEY" },
+    { id: "gemma", name: "Gemma(Ollama)", raw: '{"pick": {"label": "red block",\n          "bbox": [398, 214, 441, 249]}}',
+      out: "[398, 214, 441, 249]\n# 精度は実測して比較表へ",
+      note: "Mac 上でローカルに動かす。キー不要。OpenAI 互換の API なので、OpenAI 用の実装を接続先だけ変えて使う。小さいモデルは座標がずれる可能性がある。" },
+  ];
+  const tabs = $("#vlmTabs");
+  const selectVlm = (i) => {
+    $$("[role=tab]", tabs).forEach((t, j) => { t.setAttribute("aria-selected", String(i === j)); t.tabIndex = i === j ? 0 : -1; });
+    $("#vlmRaw").textContent = VLM[i].raw;
+    $("#vlmOut").textContent = VLM[i].out;
+    $("#vlmNote").textContent = VLM[i].note;
+    ["#vlmRaw", "#vlmOut"].forEach((s) => { const n = $(s); n.classList.remove("fade-swap"); void n.offsetWidth; n.classList.add("fade-swap"); });
+  };
+  VLM.forEach((v, i) => {
+    const t = el("button", { role: "tab", type: "button", id: `tab-${v.id}`, "aria-controls": "vlmPanel", text: v.name });
+    t.addEventListener("click", () => selectVlm(i));
+    t.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+      const next = (i + (e.key === "ArrowRight" ? 1 : -1) + VLM.length) % VLM.length;
+      selectVlm(next);
+      $$("[role=tab]", tabs)[next].focus();
+    });
+    tabs.append(t);
+  });
+  selectVlm(2);
+
+  /* ---------- success judge ---------- */
+  const CASES = {
+    ok: { pos: "translate(205px, 165px)", conds: [1, 1, 1], moving: false },
+    out: { pos: "translate(330px, 173px)", conds: [0, 1, 1], moving: false },
+    rim: { pos: "translate(248px, 104px) rotate(-18deg)", conds: [1, 0, 1], moving: false },
+    move: { pos: "translate(205px, 165px) rotate(8deg)", conds: [1, 1, 0], moving: true },
+  };
+  const jBlock = $("#jBlock");
+  const setCase = (key) => {
+    const c = CASES[key];
+    jBlock.style.transform = c.pos;
+    $("#judgeSvg").classList.toggle("moving", c.moving);
+    $$("#judgeConds li").forEach((li, i) => {
+      li.classList.remove("ok", "ng", "pop");
+      void li.offsetWidth;
+      li.classList.add(c.conds[i] ? "ok" : "ng", "pop");
+      $(".mark", li).textContent = c.conds[i] ? "✓" : "✗";
+    });
+    const success = c.conds.every(Boolean);
+    const v = $("#judgeVerdict");
+    v.className = `verdict ${success ? "ok" : "ng"}`;
+    v.textContent = success ? "判定: 成功" : "判定: 失敗";
+    $$("#judgeBtns button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.case === key)));
+  };
+  $$("#judgeBtns button").forEach((b) => b.addEventListener("click", () => setCase(b.dataset.case)));
+  setCase("ok");
+
+  /* ---------- task filter ---------- */
+  $$("#taskFilter button").forEach((b) => b.addEventListener("click", () => {
+    const f = b.dataset.f;
+    $$("#taskFilter button").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    $$("details[data-kind]").forEach((d) => d.classList.toggle("hidden", f !== "all" && d.dataset.kind !== f));
+  }));
+
+  /* ---------- reveal on scroll ---------- */
+  const onView = (target, cb) => {
+    if (!target) return;
+    if (REDUCED_MOTION || !("IntersectionObserver" in window)) { cb(); return; }
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((en) => { if (en.isIntersecting) { cb(); io.disconnect(); } });
+    }, { threshold: 0.35 });
+    io.observe(target);
+  };
+  onView($("#gantt"), () => $("#gantt").classList.add("is-on"));
+  onView($("#coordSvg"), () => {
+    setCoord(1);
+    if (REDUCED_MOTION) { setCoord(3); return; }
+    coordTimer = setInterval(() => setCoord(coordIdx % 3 + 1), 2400);
+  });
+
+  /* ---------- current section in TOC ---------- */
+  const tocLinks = $$(".toc a");
+  if ("IntersectionObserver" in window) {
+    const secIo = new IntersectionObserver((entries) => {
+      entries.forEach((en) => {
+        if (!en.isIntersecting) return;
+        tocLinks.forEach((a) => a.classList.toggle("is-current", a.getAttribute("href") === `#${en.target.id}`));
+      });
+    }, { rootMargin: "-45% 0px -50% 0px" });
+    tocLinks.forEach((a) => { const s = $(a.getAttribute("href")); if (s) secIo.observe(s); });
+  }
+})();
+
+</script>
+</body>
+</html>

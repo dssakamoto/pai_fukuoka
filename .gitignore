@@ -1,0 +1,16 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.coverage
+htmlcov/
+results/
+data/
+media/
+*.mp4
+.DS_Store
+
+# 実行ログ・第三者の参考資料(再配布しない)
+MUJOCO_LOG.TXT
+docs/arXiv-*/
