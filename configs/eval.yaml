@@ -1,0 +1,8 @@
+# 評価設定 (TASK-0006 時点。判定しきい値は TASK-0015 で追加する)
+n_trials: 20      # 評価の試行数
+base_seed: 0      # 試行 i のシードは base_seed + i
+placement:
+  n_blocks: 3       # ブロック数
+  area: 0.20        # 配置領域 (正方形) の一辺 [m]。中心は SCENE_SPEC の作業範囲の中点
+  min_gap: 0.05     # ブロック中心間の最小距離 [m]
+  max_attempts: 10000  # 棄却サンプリングの候補の引き数の合計上限
