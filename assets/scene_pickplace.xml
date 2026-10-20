@@ -1,0 +1,70 @@
+<!--
+  ピック&プレース用シーン (TASK-0005)。assets/so101/ の上流ファイルは改変せず、ここで追加する。
+
+  【include について】
+  上流 scene.xml は include できない(入れ子の include とメッシュのパスが、
+  最上位ファイルの位置を基準に解決されるため)。そのため so101_new_calib.xml を include し、
+  床・照明・空は上流 scene.xml と同じ内容をここに書き写している。
+  メッシュは、このファイル末尾の compiler で meshdir を最上位基準に直し、
+  include 由来のディレクトリ接頭辞を strippath で落として読む。
+
+  【作業面】🟡 作業台は置かず、ロボット土台と同じ床 (z=0) を作業面とする。
+  ブロックの高さ(静止時の z)は 0.015 m。
+
+  【数値の単一の情報源】箱・ブロック・カメラ名などの値は
+  src/so101_vlm/eval/scene_spec.py と一致させる(tests/test_scene.py が照合する)。
+-->
+<mujoco model="scene_pickplace">
+  <include file="so101/so101_new_calib.xml"/>
+  <compiler meshdir="so101/assets" strippath="true"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+    <global azimuth="160" elevation="-20"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
+    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4"
+             rgb2="0.1 0.2 0.3" markrgb="0.8 0.8 0.8" width="300" height="300"/>
+    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
+    <material name="box_mat" rgba="0.85 0.75 0.55 1"/>
+  </asset>
+
+  <worldbody>
+    <light pos="0 0 3.5" dir="0 0 -1" directional="true"/>
+    <geom name="floor" size="0 0 0.05" pos="0 0 0" type="plane" material="groundplane"/>
+
+    <!-- 【ブロック】一辺 3 cm、20 g、摩擦 1.0。初期位置は TASK-0006 が上書きする -->
+    <body name="block_red" pos="0.20 -0.06 0.015">
+      <freejoint name="block_red_joint"/>
+      <geom name="block_red_geom" type="box" size="0.015 0.015 0.015" mass="0.02"
+            friction="1.0 0.005 0.0001" condim="4" rgba="0.9 0.1 0.1 1"/>
+    </body>
+    <body name="block_blue" pos="0.30 0.00 0.015">
+      <freejoint name="block_blue_joint"/>
+      <geom name="block_blue_geom" type="box" size="0.015 0.015 0.015" mass="0.02"
+            friction="1.0 0.005 0.0001" condim="4" rgba="0.1 0.2 0.9 1"/>
+    </body>
+    <body name="block_green" pos="0.22 0.07 0.015">
+      <freejoint name="block_green_joint"/>
+      <geom name="block_green_geom" type="box" size="0.015 0.015 0.015" mass="0.02"
+            friction="1.0 0.005 0.0001" condim="4" rgba="0.1 0.75 0.2 1"/>
+    </body>
+
+    <!-- 【箱】内寸 8 x 8 cm、壁の高さ 4 cm、壁厚 5 mm、上は開放。底板の上面が z=0.005。中心 (0.20, 0.19) -->
+    <body name="box" pos="0.20 0.19 0">
+      <geom name="box_floor" type="box" pos="0 0 0.0025" size="0.045 0.045 0.0025" material="box_mat"/>
+      <geom name="box_wall_px" type="box" pos="0.0425 0 0.02" size="0.0025 0.045 0.02" material="box_mat"/>
+      <geom name="box_wall_nx" type="box" pos="-0.0425 0 0.02" size="0.0025 0.045 0.02" material="box_mat"/>
+      <geom name="box_wall_py" type="box" pos="0 0.0425 0.02" size="0.045 0.0025 0.02" material="box_mat"/>
+      <geom name="box_wall_ny" type="box" pos="0 -0.0425 0.02" size="0.045 0.0025 0.02" material="box_mat"/>
+    </body>
+
+    <!-- 【固定カメラ】ロボットの左前上方 (x=0.45, y=0.30, z=0.55) から作業エリア付近 (0.24, 0.10, 0) を斜めに見る。
+         腕が home 姿勢 (q=0) でも作業エリアと箱を隠さない位置を選んだ(正面からだと腕が写り込む) -->
+    <camera name="cam_top" pos="0.45 0.30 0.55" fovy="60"
+            xyaxes="-0.68966 0.72414 0 -0.64055 -0.61005 0.46641"/>
+  </worldbody>
+</mujoco>

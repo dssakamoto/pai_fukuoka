@@ -15,3 +15,6 @@ JOINT_NAMES = (
     "gripper",
 )
 SITE_NAMES = ("baseframe", "gripperframe")
+
+# 【ピック&プレース用シーン】(TASK-0005): 上流ファイルを改変せず include して追加したもの
+PICKPLACE_SCENE_PATH = REPO_ROOT / "assets" / "scene_pickplace.xml"

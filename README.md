@@ -57,3 +57,15 @@ uv run mjpython scripts/view_so101.py
 ```
 
 関節順は `so101_vlm.robot.base.JOINT_NAMES`(定義は `model_paths.py`)。
+
+## シーンの確認(TASK-0005)
+
+ピック&プレース用シーン(`assets/scene_pickplace.xml`: ブロック 3 個、箱、固定カメラ `cam_top`)を撮影し、RGB と深度を保存する。
+
+```bash
+# media/scene_rgb.png, media/scene_depth.npy(m 単位), media/scene_depth.png(確認用)を出力
+uv run python scripts/capture_scene.py
+```
+
+- 上流の `assets/so101/` は改変しない。`scene_pickplace.xml` は `so101_new_calib.xml` を include し、床・照明は上流 `scene.xml` と同内容を書き写している(`meshdir`/`strippath` の理由はファイル冒頭のコメント)。
+- 寸法・名前の単一の情報源は `src/so101_vlm/eval/scene_spec.py`(箱の内寸・縁の高さ、作業エリア、カメラ名)。
