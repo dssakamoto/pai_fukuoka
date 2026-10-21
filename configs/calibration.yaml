@@ -1,0 +1,20 @@
+# 自動生成ファイル (source: sim)。手で編集しないこと。
+# 再生成: uv run python scripts/generate_calibration.py
+# 確認:   uv run python scripts/generate_calibration.py --check
+version: 1
+metadata:
+  source: sim
+  camera_name: cam_top
+  base_frame: baseframe
+camera:
+  fx: 415.6921938165307
+  fy: 415.6921938165307
+  cx: 319.5
+  cy: 239.5
+  width: 640
+  height: 480
+t_base_cam:
+- [-0.6896566706214934, 0.6405487761198795, -0.3377439001352973, 0.45]
+- [0.7241365041670508, 0.6100489807755903, -0.3216621898628844, 0.3]
+- [-2.7755575615628914e-17, -0.46640916207337524, -0.8845691004856614, 0.55]
+- [0.0, 0.0, 0.0, 1.0]
