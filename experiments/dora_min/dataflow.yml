@@ -1,0 +1,20 @@
+# 最小検証: camera_dummy -> viewer (画像), camera_dummy -> robot_dummy -> viewer (関節ベクトル)
+nodes:
+  - id: camera_dummy
+    path: camera_dummy.py
+    inputs:
+      tick: dora/timer/millis/100
+    outputs: [small_rgb, big_rgb, joint_cmd]
+
+  - id: robot_dummy
+    path: robot_dummy.py
+    inputs:
+      joint_cmd: camera_dummy/joint_cmd
+    outputs: [robot_state]
+
+  - id: viewer
+    path: viewer.py
+    inputs:
+      small_rgb: camera_dummy/small_rgb
+      big_rgb: camera_dummy/big_rgb
+      robot_state: robot_dummy/robot_state
