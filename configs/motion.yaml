@@ -1,0 +1,68 @@
+# 安全フィルタの設定 (TASK-0010)。
+# 単位: 角度 rad、角速度 rad/s、時間 s、長さ m。座標は baseframe 基準 (sim ではワールド座標と同じ)。
+# 数値の根拠: docs/implements/so101-vlm-pickplace/TASK-0010/safety-survey.md
+# このファイルには他の動作パラメータ (接近高さなど、TASK-0012) も追加される。
+# 読み込み側は safety: 以外の最上位キーを無視する。
+safety:
+  # 関節ごとの最大角速度 [rad/s] (6 関節、JOINT_NAMES 順)。
+  # 🔴 仮定: STS3215 の実機の速度は仕様書にない。sim の pick & place が 1 回 5〜7 s に収まる値として 1.0 を置いた。
+  #    実機で測って調整する (TASK-0035)。
+  vmax: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+  # 制御周期 [s]。🔵 sim の timestep 0.002 s x n_substeps 10 = 0.02 s。実機の周期は TASK-0034/0035 で確認する。
+  control_dt: 0.02
+
+  # 速度倍率 (0 より大きく 1 以下)。🔵 sim は 1.0。
+  # 実機の初回は 0.3 を別の設定 (configs/real.yaml、TASK-0035) から与える (NFR-07(2))。この値は変えない。
+  speed_scale: 1.0
+
+  # 状態の更新が途絶えたとみなす時間 [s]。🔴 仮定: 制御周期 10 回分。資料に値がない。
+  # sim は毎周期状態を読むので途絶しない。実機の読み取り周期を測って調整する (TASK-0035)。
+  state_timeout: 0.2
+
+  # IK に渡す目標点の許容範囲 (直方体、境界を含む)。🟡 タスク点の外側 3 cm を余裕として加えた。
+  workspace:
+    # 下限 (x, y, z)。最小のタスク点 (0.15, -0.10, 0.015) の 3 cm 外側。z は床面で止める。
+    lower: [0.12, -0.13, 0.00]
+    # 上限 (x, y, z)。最大のタスク点 (0.35, 0.23, 0.14) の 3 cm 外側。y 0.23 は箱の内寸の端。
+    upper: [0.38, 0.26, 0.17]
+
+# 把持・運搬の軌道生成 (TASK-0012)。IkPolicy が読む。
+# 数値の根拠: docs/implements/so101-vlm-pickplace/TASK-0012/trajectory-survey.md (sim の実測)
+trajectory:
+  # 把持中心の gripperframe 局所座標 [m]。🔵 実測 (survey 2 節)。
+  # 暫定値 (-0.0075, 0, 0.015) は sim の固定顎 (凸包) に 10 mm めり込むため採らない。実機は TASK-0035 で測り直す。
+  tcp_offset: [0.004, 0.0, 0.030]
+
+  # pre_grasp は把持点の何 m 上か。🔵 実測 (運搬の高さ 0.095 m が下限 0.079 m を上回る)。
+  approach_height: 0.08
+
+  # lift / pre_place の TCP z の下限 [m]。🔴 仮定: 箱の壁 (高さ約 0.05) と手の厚みを越える余裕。
+  min_carry_z: 0.08
+
+  # 置く面から、ブロックを離す TCP までの高さ [m]。🔵 実測 (箱の底 0.005 -> TCP z 0.035)。
+  place_height: 0.030
+
+  # グリッパーの開き / 閉じ指令 [rad] (大きいほど開く)。
+  # 🔵 実測: sim で 3 cm のブロックに当たるのは約 0.37〜0.44 rad。閉じ指令はそれより奥の 0.15 にして握力を確保する。
+  gripper_open: 0.6
+  gripper_closed: 0.15
+
+  # 閉じた後 / 開いた後の保持時間 [s]。🔴 仮定: 短縮の調査はしていない (requirements 8 節 D7)。
+  close_hold_s: 0.5
+  open_hold_s: 0.3
+
+  # 1 区間の最短時間 [s]。🟡 開始姿勢が経由点と同じでも時刻が単調増加になるようにする。
+  min_segment_s: 0.2
+
+  # 時間配分の係数。🔵 TASK-0010 の指令列の定義: 1 周期の変化を上限の 99% 以下にする。
+  time_safety_factor: 0.99
+
+  # FK のすき間確認 (survey 2.5 節)。
+  clearance:
+    # ロボットと障害物のすき間の下限 [m]。🟡 実測の最小 2.2 mm (床、把持時) に対し 1 mm。
+    obstacle_m: 0.001
+    # 自己干渉のすき間の下限 [m]。🔵 正常時 8.3 mm 以上、肘を折り畳んだ失敗例は -10.3 mm。
+    self_m: 0.002
+    # 障害物とみなす geom (床と箱)。掴むブロックと他のブロックは対象外。
+    obstacle_geoms: [floor, box_floor, box_wall_px, box_wall_nx, box_wall_py, box_wall_ny]
