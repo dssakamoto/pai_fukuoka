@@ -16,6 +16,12 @@
 -->
 <mujoco model="scene_pickplace">
   <include file="so101/so101_new_calib.xml"/>
+  <!-- 【物理設定】(TASK-0013) シミュレーションでブロックを把持して持ち上げ続けるための設定。
+       既定の摩擦錐 (pyramidal / impratio 1) では持ち上げ中にブロックが顎から抜ける (実測 0/58)。
+       楕円の摩擦錐と impratio 10 にすると接触の滑りが抑えられ 58/58 で保持できる
+       (docs/implements/so101-vlm-pickplace/TASK-0013/pick-survey.md)。
+       timestep は既定 (0.002 s) のまま。摩擦・質量はここでは変えない。 -->
+  <option cone="elliptic" impratio="10"/>
   <compiler meshdir="so101/assets" strippath="true"/>
 
   <visual>

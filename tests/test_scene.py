@@ -6,7 +6,7 @@ import pytest
 
 from so101_vlm.eval.scene_spec import SCENE_SPEC as SPEC
 from so101_vlm.nodes.camera import render_rgbd
-from so101_vlm.robot.model_paths import PICKPLACE_SCENE_PATH
+from so101_vlm.robot.model_paths import PICKPLACE_SCENE_PATH, SO101_SCENE_PATH
 from so101_vlm.robot.sim import SimRobot
 
 SETTLE_STEPS = 500  # 1 s (timestep 2 ms)
@@ -146,3 +146,37 @@ def test_simrobot_works_on_pickplace_scene_without_disturbing_blocks():
         model, data = robot._model, robot._data
         for n in SPEC.block_names:
             assert data.xpos[_body_id(model, n)][2] == pytest.approx(SPEC.block_rest_z, abs=REST_TOL)
+
+
+# =========================== 物理設定 (TASK-0013) ===========================
+# テストケース定義: docs/implements/so101-vlm-pickplace/TASK-0013/pick-testcases.md 1 節
+IMPRATIO = 10.0
+TIMESTEP_S = 0.002
+
+
+def test_physics_option_is_elliptic_cone_with_impratio(settled):
+    """TC-SC-01 物理設定が入っている 🔵"""
+    # 【テストデータ準備】: 既存の settled フィクスチャのモデルを使う
+    model = settled[0]
+    # 【結果検証】: 楕円の摩擦錐と impratio 10 が入り、timestep は変わらない
+    assert model.opt.cone == mujoco.mjtCone.mjCONE_ELLIPTIC  # 【確認内容】: 摩擦錐
+    assert model.opt.impratio == IMPRATIO  # 【確認内容】: impratio
+    assert model.opt.timestep == TIMESTEP_S  # 【確認内容】: SimRobot の 1 指令 = 0.02 s の前提
+
+
+def test_upstream_scene_keeps_default_physics():
+    """TC-SC-02 上流のシーンは変わらない 🟡"""
+    # 【テストデータ準備】: 上流の scene.xml を直接読む
+    model = mujoco.MjModel.from_xml_path(str(SO101_SCENE_PATH))
+    # 【結果検証】: 既定 (pyramidal / impratio 1) のまま
+    assert model.opt.cone == mujoco.mjtCone.mjCONE_PYRAMIDAL  # 【確認内容】: 上流を変更していない
+    assert model.opt.impratio == 1.0  # 【確認内容】: include 先に <option> を書いていない
+
+
+def test_option_appears_once_between_include_and_compiler():
+    """TC-SC-03 <option> は 1 回だけ、include の直後 🟡"""
+    # 【テストデータ準備】: XML の文字列そのもの
+    text = PICKPLACE_SCENE_PATH.read_text(encoding="utf-8")
+    # 【結果検証】: コメントには <option と書かない前提で、ちょうど 1 回
+    assert text.count("<option") == 1  # 【確認内容】: 重複なし
+    assert text.index("<include") < text.index("<option") < text.index("<compiler")  # 【確認内容】: 位置

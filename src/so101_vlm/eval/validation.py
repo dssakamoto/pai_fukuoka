@@ -1,11 +1,12 @@
 """設定値・引数の検証ヘルパ (TASK-0006)。
 
-layout.py と eval_config.py が同じ規則を使うため共有する。違反は ValueError (名前入り)。
+layout.py・eval_config.py・safety/config.py が同じ規則を使うため共有する。違反は ValueError (名前入り)。
 🟡 要件定義書 2.1 / 2.4 の検証規則に基づく。
 """
 
 import math
 import numbers
+from collections.abc import Mapping
 
 import numpy as np
 
@@ -56,3 +57,20 @@ def require_min_gap(name: str, value: object) -> float:
     if gap < 0:
         raise ValueError(f"{name} は 0 以上で指定してください: {name}={value!r}")
     return gap
+
+
+def require_exact_keys(name: str, value: object, allowed: frozenset[str]) -> Mapping:
+    """【機能概要】: mapping であり、キーが allowed と過不足なく一致することを要求する 🟡
+
+    【再利用性】: eval_config (placement) と safety.config (safety / workspace) の YAML 検証で共有。
+    未知キーは「未知のキー」、欠落は「必須キーがありません」の ValueError (キー名入り)。
+    """
+    if not isinstance(value, Mapping):
+        raise ValueError(f"{name} は mapping で指定してください: {name}={value!r}")
+    unknown = sorted(str(k) for k in value if k not in allowed)
+    if unknown:
+        raise ValueError(f"未知のキー: {', '.join(unknown)} ({name})")
+    missing = sorted(allowed - set(value))
+    if missing:
+        raise ValueError(f"必須キーがありません: {', '.join(missing)} ({name})")
+    return value

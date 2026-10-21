@@ -10,6 +10,9 @@ import dataclasses
 import pytest
 import yaml
 
+# 【TASK-0013】JudgeConfig / FailureConfig はモジュール経由で参照する (未実装の間も、
+# 既存テストが ImportError で全滅しないよう、import 時ではなくテスト実行時に名前を引く)
+import so101_vlm.eval.eval_config as eval_config_module
 from so101_vlm.eval.eval_config import (
     DEFAULT_EVAL_CONFIG_PATH,
     EvalConfig,
@@ -22,6 +25,14 @@ VALID = {
     "n_trials": 20,
     "base_seed": 0,
     "placement": {"n_blocks": 3, "area": 0.20, "min_gap": 0.05, "max_attempts": 10000},
+    # TASK-0013: 成功判定と失敗分類のしきい値 (pick-testcases.md 2.0 節) 🔵
+    "judge": {"margin_m": 0.0, "speed_max_mps": 0.01, "settle_s": 1.0},
+    "failure": {
+        "lift_min_m": 0.03,
+        "carry_separation_m": 0.02,
+        "other_move_m": 0.005,
+        "tilt_max_deg": 20.0,
+    },
 }
 
 
@@ -63,6 +74,12 @@ def test_load_eval_config_reads_repository_file():
     assert cfg.placement.area == pytest.approx(0.20)
     assert cfg.placement.min_gap == pytest.approx(0.05)
     assert cfg.placement.max_attempts == 10000
+    # --- TASK-0013 追加: 判定と失敗分類の設定 (configs/eval.yaml は Green で更新する) 🔵 ---
+    judge_cls, failure_cls = eval_config_module.JudgeConfig, eval_config_module.FailureConfig
+    assert isinstance(cfg.judge, judge_cls)  # 【確認内容】: 型
+    assert isinstance(cfg.failure, failure_cls)  # 【確認内容】: 型
+    assert cfg.judge == judge_cls(0.0, 0.01, 1.0)  # 【確認内容】: リポジトリの値 (FR-07)
+    assert cfg.failure == failure_cls(0.03, 0.02, 0.005, 20.0)  # 【確認内容】: 初期しきい値
 
 
 def test_default_path_is_repository_configs_eval_yaml():
@@ -79,6 +96,11 @@ def test_config_is_frozen():
         cfg.n_trials = 1
     with pytest.raises(dataclasses.FrozenInstanceError):
         cfg.placement.area = 0.1
+    # --- TASK-0013 追加 🔵 ---
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        cfg.judge.margin_m = 0.1
+    with pytest.raises(dataclasses.FrozenInstanceError):
+        cfg.failure.tilt_max_deg = 1.0
 
 
 @pytest.mark.parametrize("as_str", [False, True])
@@ -88,6 +110,13 @@ def test_load_eval_config_reads_values_from_given_path(tmp_path, as_str):
         "n_trials": 5,
         "base_seed": 100,
         "placement": {"n_blocks": 2, "area": 0.1, "min_gap": 0.03, "max_attempts": 50},
+        "judge": {"margin_m": 0.005, "speed_max_mps": 0.02, "settle_s": 2.0},
+        "failure": {
+            "lift_min_m": 0.04,
+            "carry_separation_m": 0.03,
+            "other_move_m": 0.01,
+            "tilt_max_deg": 30.0,
+        },
     }
     path = _write(tmp_path, obj)
     cfg = load_eval_config(str(path) if as_str else path)
@@ -97,6 +126,14 @@ def test_load_eval_config_reads_values_from_given_path(tmp_path, as_str):
     assert cfg.placement.area == pytest.approx(0.1)
     assert cfg.placement.min_gap == pytest.approx(0.03)
     assert cfg.placement.max_attempts == 50
+    # --- TASK-0013 追加: 別の値が正しく読める 🟡 ---
+    assert cfg.judge.margin_m == pytest.approx(0.005)
+    assert cfg.judge.speed_max_mps == pytest.approx(0.02)
+    assert cfg.judge.settle_s == pytest.approx(2.0)
+    assert cfg.failure.lift_min_m == pytest.approx(0.04)
+    assert cfg.failure.carry_separation_m == pytest.approx(0.03)
+    assert cfg.failure.other_move_m == pytest.approx(0.01)
+    assert cfg.failure.tilt_max_deg == pytest.approx(30.0)
 
 
 def test_load_eval_config_normalizes_int_to_float(tmp_path):
@@ -108,6 +145,17 @@ def test_load_eval_config_normalizes_int_to_float(tmp_path):
     assert type(cfg.base_seed) is int
     assert type(cfg.placement.n_blocks) is int
     assert type(cfg.placement.max_attempts) is int
+
+
+def test_load_eval_config_normalizes_judge_failure_int_to_float(tmp_path):
+    """TC-C-05 (TASK-0013 追加) judge / failure の int を float に正規化 🔴"""
+    obj = _with(["judge", "settle_s"], 1)
+    obj["failure"]["tilt_max_deg"] = 20
+    cfg = load_eval_config(_write(tmp_path, obj))
+    assert type(cfg.judge.settle_s) is float  # 【確認内容】: float に正規化
+    assert cfg.judge.settle_s == 1.0
+    assert type(cfg.failure.tilt_max_deg) is float
+    assert cfg.failure.tilt_max_deg == 20.0
 
 
 # =============================================================== 異常系
@@ -122,6 +170,9 @@ def test_load_eval_config_missing_file_raises_file_not_found(tmp_path):
     [
         ({**copy.deepcopy(VALID), "n_trial": 20}, "n_trial"),
         (_with(["placement", "min_gapp"], 0.05), "min_gapp"),
+        # --- TASK-0013 追加 🔵 ---
+        (_with(["judge", "margin"], 0.0), "margin"),
+        (_with(["failure", "tilt_deg"], 20), "tilt_deg"),
     ],
 )
 def test_load_eval_config_rejects_unknown_key(tmp_path, obj, key):
@@ -140,6 +191,16 @@ def test_load_eval_config_rejects_unknown_key(tmp_path, obj, key):
         ["placement", "area"],
         ["placement", "min_gap"],
         ["placement", "max_attempts"],
+        # --- TASK-0013 追加 🔵 ---
+        ["judge"],
+        ["failure"],
+        ["judge", "margin_m"],
+        ["judge", "speed_max_mps"],
+        ["judge", "settle_s"],
+        ["failure", "lift_min_m"],
+        ["failure", "carry_separation_m"],
+        ["failure", "other_move_m"],
+        ["failure", "tilt_max_deg"],
     ],
 )
 def test_load_eval_config_rejects_missing_required_key(tmp_path, path_keys):
@@ -163,6 +224,19 @@ def test_load_eval_config_rejects_missing_required_key(tmp_path, path_keys):
         (["placement", "area"], float("nan")),
         (["placement", "min_gap"], -0.1),
         (["placement", "max_attempts"], 0),
+        # --- TASK-0013 追加 🟡 ---
+        (["judge", "margin_m"], -0.001),
+        (["judge", "margin_m"], 0.04),  # box_inner_half_size 未満であること
+        (["judge", "margin_m"], "0"),
+        (["judge", "speed_max_mps"], 0),
+        (["judge", "speed_max_mps"], True),
+        (["judge", "settle_s"], -0.1),
+        (["judge", "settle_s"], float("nan")),
+        (["failure", "lift_min_m"], 0),
+        (["failure", "carry_separation_m"], -0.02),
+        (["failure", "other_move_m"], float("inf")),
+        (["failure", "tilt_max_deg"], 0),
+        (["failure", "tilt_max_deg"], 90),
     ],
 )
 def test_load_eval_config_rejects_invalid_value(tmp_path, path_keys, value):
@@ -181,8 +255,11 @@ def test_load_eval_config_rejects_invalid_value(tmp_path, path_keys, value):
         "",
         "n_trials: 20\nbase_seed: 0\nplacement: [1, 2]\n",
         "n_trials: 20\nbase_seed: 0\nplacement:\n",
+        # --- TASK-0013 追加 🔴: judge / failure が mapping でない (他のキーは正しい) ---
+        yaml.safe_dump({**copy.deepcopy(VALID), "judge": [1, 2]}),
+        yaml.safe_dump({**copy.deepcopy(VALID), "failure": None}),
     ],
-    ids=["list", "scalar", "empty", "placement-list", "placement-null"],
+    ids=["list", "scalar", "empty", "placement-list", "placement-null", "judge-list", "failure-null"],
 )
 def test_load_eval_config_rejects_non_mapping(tmp_path, body):
     """TC-C-E05 mapping でない → ValueError (AttributeError/TypeError を漏らさない) 🔴"""
@@ -204,6 +281,19 @@ def test_load_eval_config_accepts_lower_bounds(tmp_path):
         "n_trials": 1,
         "base_seed": 0,
         "placement": {"n_blocks": 1, "area": 0.20, "min_gap": 0, "max_attempts": 1},
+        # TASK-0013 追加: judge は下限ちょうど (margin_m=0, settle_s=0) 🟡
+        "judge": {"margin_m": 0, "speed_max_mps": 0.01, "settle_s": 0},
+        "failure": copy.deepcopy(VALID["failure"]),
     }
     cfg = load_eval_config(_write(tmp_path, obj))
     assert cfg.n_trials == 1 and cfg.placement.max_attempts == 1
+    assert cfg.judge.margin_m == 0.0 and cfg.judge.settle_s == 0.0  # 【確認内容】: 下限は受け入れる
+
+
+def test_load_eval_config_accepts_just_below_upper_bounds(tmp_path):
+    """TC-C-B02 (TASK-0013 追加) 上限の直前は受け入れる (0.04 と 90 は E04 で拒否) 🟡"""
+    obj = _with(["judge", "margin_m"], 0.0399)
+    obj["failure"]["tilt_max_deg"] = 89.9
+    cfg = load_eval_config(_write(tmp_path, obj))
+    assert cfg.judge.margin_m == pytest.approx(0.0399)  # 【確認内容】: 内寸未満
+    assert cfg.failure.tilt_max_deg == pytest.approx(89.9)  # 【確認内容】: (0, 90) の内側

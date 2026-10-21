@@ -396,3 +396,79 @@ def test_context_manager_closes_and_propagates_exception(tiny_scene_path):
             robot.send_command(np.zeros(5))
     with pytest.raises(RuntimeError, match="closed"):
         robot.get_state()
+
+
+# =========================== mujoco_handles (TASK-0013) ===========================
+# テストケース定義: docs/implements/so101-vlm-pickplace/TASK-0013/pick-testcases.md 6 節
+# sim 専用の入口。ブロックの配置・真値の読み取り・描画に使う。Robot Protocol には入れない。
+N_HANDLE_COMMANDS = 3
+
+
+def test_mujoco_handles_returns_own_model_and_data(tiny_robot):
+    """TC-MH-01 自分の model / data を返す 🔴"""
+    # 【実際の処理実行】: 2 回呼ぶ
+    model, data = tiny_robot.mujoco_handles()
+    model2, data2 = tiny_robot.mujoco_handles()
+    # 【結果検証】: MuJoCo の型で、2 回とも同じオブジェクト
+    assert isinstance(model, mujoco.MjModel)  # 【確認内容】: モデルの型
+    assert isinstance(data, mujoco.MjData)  # 【確認内容】: データの型
+    assert model is model2 and data is data2  # 【確認内容】: 毎回同じ実体 (コピーではない)
+
+
+def test_mujoco_handles_data_is_the_robot_state(tiny_robot):
+    """TC-MH-02 ロボットの状態と同じ data 🔴"""
+    # 【テストデータ準備】: 3 回指令を送って時刻を進める
+    _, data = tiny_robot.mujoco_handles()
+    for _ in range(N_HANDLE_COMMANDS):
+        tiny_robot.send_command(np.zeros(6))
+    # 【結果検証】: data の時刻がロボットの時刻と一致 (3 x 10 x 0.002 = 0.06 s)
+    assert data.time == pytest.approx(tiny_robot.get_state().timestamp, abs=TIME_ABS)  # 【確認内容】: 同じ時計
+    assert data.time == pytest.approx(0.06, abs=TIME_ABS)  # 【確認内容】: 進んだ時間
+    # 【書き込みの確認】: 外から qpos を書くと次の get_state に表れる (ブロック配置に使うため)
+    joint_id = mujoco.mj_name2id(tiny_robot.mujoco_handles()[0], mujoco.mjtObj.mjOBJ_JOINT, JOINT_NAMES[0])
+    adr = tiny_robot.mujoco_handles()[0].jnt_qposadr[joint_id]
+    data.qpos[adr] = 0.123
+    assert tiny_robot.get_state().q[0] == pytest.approx(0.123, abs=TIME_ABS)  # 【確認内容】: 同じ実体
+
+
+def test_mujoco_handles_not_shared_between_robots(tiny_scene_path):
+    """TC-MH-03 別のロボットとは共有しない 🔴"""
+    r1, r2 = SimRobot(scene_path=tiny_scene_path), SimRobot(scene_path=tiny_scene_path)
+    try:
+        _, d1 = r1.mujoco_handles()
+        _, d2 = r2.mujoco_handles()
+        r1.send_command(np.zeros(6))
+        # 【結果検証】: 別の MjData で、片方を進めても他方は 0 のまま
+        assert d1 is not d2  # 【確認内容】: 別の実体
+        assert d1.time > 0.0 and d2.time == 0.0  # 【確認内容】: 時計が独立
+    finally:
+        r1.close()
+        r2.close()
+
+
+def test_mujoco_handles_is_not_part_of_robot_protocol():
+    """TC-MH-04 Robot Protocol に入れない 🔵 (要件 6.2)"""
+
+    class Minimal:
+        # 【テストデータ準備】: mujoco_handles を持たない最小のロボット
+        joint_names = JOINT_NAMES
+
+        def get_state(self):
+            return None
+
+        def send_command(self, q_target):
+            return None
+
+        def close(self):
+            return None
+
+    assert not hasattr(Robot, "mujoco_handles")  # 【確認内容】: Protocol のメンバーにない
+    assert isinstance(Minimal(), Robot)  # 【確認内容】: 実機 Robot は mujoco_handles なしで成り立つ
+
+
+def test_mujoco_handles_after_close_raises(tiny_scene_path):
+    """TC-MH-E01 閉じた後は RuntimeError 🔵"""
+    robot = SimRobot(scene_path=tiny_scene_path)
+    robot.close()
+    with pytest.raises(RuntimeError, match="closed"):  # 【確認内容】: 既存の "SimRobot is closed" と同じ
+        robot.mujoco_handles()

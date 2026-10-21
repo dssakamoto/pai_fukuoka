@@ -1,4 +1,4 @@
-# 評価設定 (TASK-0006 時点。判定しきい値は TASK-0015 で追加する)
+# 評価設定 (TASK-0006。judge: と failure: は TASK-0013 で追加。判定の正式化は TASK-0015)
 n_trials: 20      # 評価の試行数
 base_seed: 0      # 試行 i のシードは base_seed + i
 placement:
@@ -6,3 +6,16 @@ placement:
   area: 0.20        # 配置領域 (正方形) の一辺 [m]。中心は SCENE_SPEC の作業範囲の中点
   min_gap: 0.05     # ブロック中心間の最小距離 [m]
   max_attempts: 10000  # 棄却サンプリングの候補の引き数の合計上限
+
+# 成功判定 (FR-07)。TASK-0013 の最小版。TASK-0015 で正式化する。
+judge:
+  margin_m: 0.0         # 内寸からの内側の余裕 [m]。FR-07 どおり 0 (中心が内寸の内側)
+  speed_max_mps: 0.01   # 静止とみなす速さ [m/s] (FR-07 の暫定 1 cm/s)
+  settle_s: 1.0         # 軌道の終わりから判定までの待ち [s] (FR-07 の「解放 1 秒後」以上)
+
+# 失敗の分類 (TASK-0013 の初期値。数値の根拠は docs/implements/so101-vlm-pickplace/TASK-0013/pick-survey.md)
+failure:
+  lift_min_m: 0.03          # lift の終わりで静止高さから最低これだけ上がっていること [m]
+  carry_separation_m: 0.02  # 運搬中のブロック中心と TCP の距離の上限 [m]
+  other_move_m: 0.005       # 他のブロックの xy 移動の上限 [m]
+  tilt_max_deg: 20.0        # 最終の傾きの上限 [deg]

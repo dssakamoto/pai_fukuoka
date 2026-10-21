@@ -40,7 +40,8 @@ def _name_id(model: mujoco.MjModel, obj: mujoco.mjtObj, name: str) -> int:
 class SimRobot:
     """【機能概要】: MuJoCo シミュレーション上の Robot。🔵
 
-    send_command 1 回で n_substeps 回 mj_step を進める。MjData の配列は外に出さない。
+    send_command 1 回で n_substeps 回 mj_step を進める。MjData は get_state では外に出さない
+    (sim 専用の組み立て層だけが mujoco_handles で受け取る)。
     """
 
     def __init__(self, scene_path: Path = SO101_SCENE_PATH, n_substeps: int = DEFAULT_N_SUBSTEPS) -> None:
@@ -86,6 +87,16 @@ class SimRobot:
         self._data.ctrl[self._act_idx] = target
         for _ in range(self._n_substeps):
             mujoco.mj_step(self._model, self._data)
+
+    def mujoco_handles(self) -> tuple[mujoco.MjModel, mujoco.MjData]:
+        """【機能概要】: (MjModel, MjData) を返す。sim 専用。🔴
+
+        シーンの準備(ブロックの配置)、真値の読み取り、描画に使う。呼び出し側は mj_step を呼ばない
+        (時間は send_command だけで進める)。Robot Protocol には入れない(実機に MuJoCo はない)。
+        閉じた後は RuntimeError。
+        """
+        self._ensure_open()
+        return self._model, self._data
 
     def close(self) -> None:
         """【機能概要】: 終了する。何度呼んでもよい。🟡"""
