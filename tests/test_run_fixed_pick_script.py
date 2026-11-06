@@ -13,6 +13,7 @@ pytest のマーカーは登録されていないので slow マーカーは付�
 import dataclasses
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 
@@ -172,7 +173,8 @@ def test_bad_arguments_exit_with_code_two(script, tmp_path, argv):
 def test_help_works_as_a_subprocess():
     """TC-CLI-E02 --help はサブプロセスで動く (約 1 s) 🟡"""
     proc = subprocess.run(
-        [sys.executable, str(SCRIPT_PATH), "--help"], capture_output=True, text=True, timeout=60
+        [sys.executable, str(SCRIPT_PATH), "--help"], capture_output=True, text=True, encoding="utf-8",
+        env={**os.environ, "PYTHONUTF8": "1"}, timeout=60
     )
     assert proc.returncode == 0
     assert "--seed" in proc.stdout and "--out-dir" in proc.stdout
