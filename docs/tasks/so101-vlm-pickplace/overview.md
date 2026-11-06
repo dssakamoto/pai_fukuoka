@@ -54,7 +54,7 @@
 ## 全体進捗
 
 - [ ] Phase 1: 基盤(シミュレーション環境)
-- [ ] Phase 2: 知覚・制御・安全
+- [x] Phase 2: 知覚・制御・安全
 - [ ] Phase 3: VLM 接続
 - [ ] Phase 4: 評価・記録・動画(v1 完了)
 - [ ] Phase 5: 実機準備
@@ -118,8 +118,8 @@ TASK-0001 → TASK-0007
 - [x] [TASK-0011: IK(逆運動学)](TASK-0011.md) - 2.5h (TDD) 🟡 ← T-11 ✅ 完了 (2026-10-20)
 - [x] [TASK-0012: 把持・運搬の軌道生成](TASK-0012.md) - 2h (TDD) 🔵 ← T-12 ✅ 完了 (2026-10-22)
 - [x] [TASK-0013: 固定位置での pick & place(VLM なし)](TASK-0013.md) - 2h (TDD) 🔵 ← T-13 ✅ 完了 (2026-10-22)
-- [ ] [TASK-0014: 把持の調整](TASK-0014.md) - 2h (DIRECT) 🔵 ← T-14
-- [ ] [TASK-0015: 成功判定](TASK-0015.md) - 1.5h (TDD) 🔵 ← T-15
+- [x] [TASK-0014: 把持の調整](TASK-0014.md) - 2h (DIRECT) 🔵 ← T-14 ✅ 完了 (2026-11-06)
+- [x] [TASK-0015: 成功判定](TASK-0015.md) - 1.5h (TDD) 🔵 ← T-15 ✅ 完了 (2026-11-06)
 
 ### 依存関係
 
@@ -149,15 +149,15 @@ TASK-0005 → TASK-0015
 
 ### タスク一覧
 
-- [ ] [TASK-0016: VLM 各社の仕様確認と設定ファイル](TASK-0016.md) - 1.5h (DIRECT) 🔵 ← T-16
-- [ ] [TASK-0017: VLM の出力スキーマと検証](TASK-0017.md) - 1.5h (TDD) 🔵 ← T-17
-- [ ] [TASK-0018: VlmClient の共通部分(再試行・タイムアウト・キャッシュ)](TASK-0018.md) - 2h (TDD) 🔵 ← T-18
+- [x] [TASK-0016: VLM 各社の仕様確認と設定ファイル](TASK-0016.md) - 1.5h (DIRECT) 🔵 ← T-16 ✅ 完了 (2026-11-06)
+- [x] [TASK-0017: VLM の出力スキーマと検証](TASK-0017.md) - 1.5h (TDD) 🔵 ← T-17 ✅ 完了 (2026-11-06)
+- [x] [TASK-0018: VlmClient の共通部分(再試行・タイムアウト・キャッシュ)](TASK-0018.md) - 2h (TDD) 🔵 ← T-18 ✅ 完了 (2026-11-06)
 - [ ] [TASK-0019: AnthropicClient](TASK-0019.md) - 1.5h (TDD) 🔵 ← T-19
 - [ ] [TASK-0020: OpenAIClient](TASK-0020.md) - 1.5h (TDD) 🔵 ← T-20
 - [ ] [TASK-0021: GeminiClient](TASK-0021.md) - 1.5h (TDD) 🔵 ← T-21
 - [ ] [TASK-0022: OllamaClient(Gemma)](TASK-0022.md) - 2h (TDD) 🔵 ← T-22
-- [ ] [TASK-0023: 検出結果の可視化](TASK-0023.md) - 1h (TDD) 🟡 ← T-23
-- [ ] [TASK-0024: VLM → 座標変換 → IK の結合](TASK-0024.md) - 2h (TDD) 🔵 ← T-24
+- [x] [TASK-0023: 検出結果の可視化](TASK-0023.md) - 1h (TDD) 🟡 ← T-23 ✅ 完了 (2026-11-06)
+- [x] [TASK-0024: VLM → 座標変換 → IK の結合](TASK-0024.md) - 2h (TDD) 🔵 ← T-24 ✅ 完了 (2026-11-06)
 - [ ] [TASK-0025: ノード分割とデータフローの配線](TASK-0025.md) - 2h (TDD) 🔵 ← T-25
 
 ### 依存関係

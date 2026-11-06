@@ -1,6 +1,6 @@
 """失敗の分類 FailureKind / PickTrace / classify_failure (TASK-0013)。
 
-🟡 純粋関数 (TASK-0026 の集計でも同じ型を使う)。design.md 4.8 の「IK 失敗 / 把持失敗 / 配置失敗」との対応:
+🟡 純粋関数 (TASK-0026 の集計でも同じ型を使う)。design.md 4.8 の「VLM 失敗 / IK 失敗 / 把持失敗 / 配置失敗」との対応: VLM 失敗 = vlm_failure / perception_failure、
 IK 失敗 = planning_failure、把持失敗 = grasp_slip / drop、配置失敗 = collision_other / knocked_over / not_in_box。
 🔴 しきい値 (configs/eval.yaml の failure:) は初期値。
 """
@@ -14,8 +14,10 @@ from so101_vlm.eval.judge import JudgeResult
 
 
 class FailureKind(str, Enum):
-    """【機能概要】: 失敗の種類 (6 種)。🟡"""
+    """【機能概要】: 失敗の種類 (8 種)。🟡"""
 
+    VLM_FAILURE = "vlm_failure"  # PlanError (呼び出し失敗・JSON 不正・対象なし)。動作前に拒否 (TASK-0024)
+    PERCEPTION_FAILURE = "perception_failure"  # 枠から 3 次元位置を作れない (深度なし等)。動作前に拒否 (TASK-0024)
     PLANNING_FAILURE = "planning_failure"  # TrajectoryError (動作前に拒否)
     GRASP_SLIP = "grasp_slip"  # 持ち上がらない / 持ち上げ・運搬中に抜けた
     DROP = "drop"  # place 区間 (解放前) に離れた

@@ -83,7 +83,7 @@ def _place_goal(data: mujoco.MjData, model: mujoco.MjModel, body: str) -> Goal:
 
 
 @dataclass(frozen=True)
-class _Configs:
+class RunConfigs:
     """【機能概要】: 1 試行で使う 3 つの設定をまとめる (引数の数を減らすための内部用)。🟡"""
 
     eval: EvalConfig
@@ -92,7 +92,7 @@ class _Configs:
 
 
 def _plan(
-    robot: SimRobot, model: mujoco.MjModel, goal: Goal, configs: _Configs
+    robot: SimRobot, model: mujoco.MjModel, goal: Goal, configs: RunConfigs
 ) -> tuple[JointTrajectory | None, TrajectoryError | None, float]:
     """【機能概要】: IkPolicy で軌道を作る。TrajectoryError は捕まえて返す (実行しない) 🔵"""
     started = time.perf_counter()
@@ -105,7 +105,7 @@ def _plan(
 
 
 def _execute(
-    robot: SimRobot, trajectory: JointTrajectory, body: str, configs: _Configs,
+    robot: SimRobot, trajectory: JointTrajectory, body: str, configs: RunConfigs,
     frame_sink: FrameSink | None,
 ) -> tuple[ExecutionResult, PickTrace]:
     """【機能概要】: 軌道を実行し、毎周期の追跡と frame_sink 呼び出しを行う 🔵"""
@@ -151,6 +151,50 @@ def _outcome_planning_failed(
     )  # fmt: skip
 
 
+def load_run_configs(
+    eval_config: EvalConfig | None = None,
+    safety_config: SafetyConfig | None = None,
+    trajectory_config: TrajectoryConfig | None = None,
+) -> RunConfigs:
+    """【機能概要】: 注入された設定はそのまま、None のものは既定の YAML から読んで RunConfigs にする 🔵"""
+    return RunConfigs(
+        eval=load_eval_config() if eval_config is None else eval_config,
+        safety=load_safety_config() if safety_config is None else safety_config,
+        trajectory=load_trajectory_config() if trajectory_config is None else trajectory_config,
+    )
+
+
+def run_goal(
+    robot: SimRobot,
+    goal: Goal,
+    *,
+    seed: int,
+    colour: str,
+    configs: RunConfigs,
+    frame_sink: FrameSink | None = None,
+) -> FixedPickOutcome:
+    """【機能概要】: 配置済みのシーンで、goal から 計画 -> 実行 -> 判定 -> 分類 を行う 🔵
+
+    【実装方針】: 計画失敗は実行しない (frame_sink も呼ばない)。真の位置を使うか、知覚の推定を使うかは
+    呼び出し側が goal で決める (run_fixed_pick: 真の位置、run_trial: VLM + 知覚の推定)。
+    判定は常に真のブロックの状態で行う。
+    """
+    model, data = robot.mujoco_handles()
+    body = COLOUR_TO_BODY[colour]
+    trajectory, error, plan_time_s = _plan(robot, model, goal, configs)
+    if error is not None:
+        return _outcome_planning_failed(seed, colour, goal, error, plan_time_s)
+    execution, trace = _execute(robot, trajectory, body, configs, frame_sink)
+    judge = _judge_block(model, data, body, configs.eval)
+    return FixedPickOutcome(
+        seed=seed, colour=colour, pick_target=tuple(float(v) for v in goal.pick_target_base),
+        planning_error=None, planning_waypoint=None, plan_time_s=plan_time_s,
+        execution=execution, judge=judge, trace=trace,
+        failure=classify_failure(trace, judge, configs.eval.failure),
+        other_block_moved=trace.max_other_move > configs.eval.failure.other_move_m,
+    )  # fmt: skip
+
+
 def run_fixed_pick(
     seed: int,
     colour: str = "red",
@@ -163,16 +207,12 @@ def run_fixed_pick(
 ) -> FixedPickOutcome:
     """【機能概要】: seed の配置で colour のブロックを、真の位置から箱に入れる 1 試行を実行する 🔵
 
-    【実装方針】: 手順は配置 -> 真の位置 -> 計画 -> 実行 -> 判定 -> 分類。計画失敗は実行しない
+    【実装方針】: 手順は配置 -> 真の位置 -> run_goal。計画失敗は実行しない
     (frame_sink も呼ばない)。frame_sink(model, data, 周期の番号, 区間名) は毎周期 (待ちを含む)、
     追跡の更新の後に呼ぶ。不正な colour / seed は SimRobot を作る前に ValueError。
     """
     seed, colour = _validate_args(seed, colour)
-    configs = _Configs(
-        eval=load_eval_config() if eval_config is None else eval_config,
-        safety=load_safety_config() if safety_config is None else safety_config,
-        trajectory=load_trajectory_config() if trajectory_config is None else trajectory_config,
-    )
+    configs = load_run_configs(eval_config, safety_config, trajectory_config)
     body = COLOUR_TO_BODY[colour]
     place = configs.eval.placement
     with SimRobot(scene_path) as robot:
@@ -180,15 +220,4 @@ def run_fixed_pick(
         layout = sample_layout(seed, place.n_blocks, place.area, place.min_gap, place.max_attempts)
         place_blocks(model, data, layout)
         goal = _place_goal(data, model, body)
-        trajectory, error, plan_time_s = _plan(robot, model, goal, configs)
-        if error is not None:
-            return _outcome_planning_failed(seed, colour, goal, error, plan_time_s)
-        execution, trace = _execute(robot, trajectory, body, configs, frame_sink)
-        judge = _judge_block(model, data, body, configs.eval)
-    return FixedPickOutcome(
-        seed=seed, colour=colour, pick_target=tuple(float(v) for v in goal.pick_target_base),
-        planning_error=None, planning_waypoint=None, plan_time_s=plan_time_s,
-        execution=execution, judge=judge, trace=trace,
-        failure=classify_failure(trace, judge, configs.eval.failure),
-        other_block_moved=trace.max_other_move > configs.eval.failure.other_move_m,
-    )  # fmt: skip
+        return run_goal(robot, goal, seed=seed, colour=colour, configs=configs, frame_sink=frame_sink)

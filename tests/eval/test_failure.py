@@ -68,8 +68,9 @@ def test_classify_failure(tr, jd, expected):
 def test_failure_kind_values():
     """TC-FL-08 (列挙) FailureKind の値と型 🔵"""
     assert {k.value for k in FailureKind} == {
+        "vlm_failure", "perception_failure",
         "planning_failure", "grasp_slip", "drop", "collision_other", "knocked_over", "not_in_box",
-    }  # 【確認内容】: 6 種類
+    }  # 【確認内容】: 8 種類 (TASK-0024 で VLM・知覚の失敗を追加)
     assert isinstance(FailureKind.DROP, str)  # 【確認内容】: str の Enum
 
 
