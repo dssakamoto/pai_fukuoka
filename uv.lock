@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = "==3.12.*"
 
 [[package]]
@@ -276,6 +276,7 @@ dependencies = [
     { name = "imageio-ffmpeg" },
     { name = "mujoco" },
     { name = "numpy" },
+    { name = "pillow" },
     { name = "pyyaml" },
 ]
 
@@ -291,6 +292,7 @@ requires-dist = [
     { name = "imageio-ffmpeg", specifier = ">=0.6.0" },
     { name = "mujoco" },
     { name = "numpy" },
+    { name = "pillow" },
     { name = "pyyaml" },
 ]
 

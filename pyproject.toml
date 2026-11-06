@@ -9,6 +9,7 @@ dependencies = [
     "imageio-ffmpeg>=0.6.0",
     "mujoco",
     "numpy",
+    "pillow",
     "pyyaml",
 ]
 

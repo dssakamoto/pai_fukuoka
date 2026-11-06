@@ -1,0 +1,33 @@
+# VLM の設定 (TASK-0016)。仕様の確認結果は docs/notes/vlm-providers.md。
+# モデル名は 2026-11-06 に公式ドキュメントで確認した。変わりやすいので、評価の前に再確認する。
+# API キーはここに書かない。環境変数 (.env) から読む。
+
+# 既定のプロバイダ。providers: のキーのどれか。
+provider: anthropic
+
+# 共通 (design.md 4.3)
+timeout_s: 30        # 1 回の呼び出しのタイムアウト [s]
+max_retries: 2       # タイムアウト・レート制限・通信エラーの再試行回数 (指数バックオフ)
+cache:
+  enabled: true
+  dir: media/vlm_cache   # キー = (画像ハッシュ, 指示, プロバイダ, モデル)。media/ は git 管理外
+
+providers:
+  anthropic:
+    model: claude-haiku-5-5
+    api_key_env: ANTHROPIC_API_KEY
+    coord_format: xyxy_px          # 絶対ピクセル [x1, y1, x2, y2]、左上原点
+  openai:
+    model: gpt-6-luna
+    api_key_env: OPENAI_API_KEY
+    coord_format: xyxy_px          # 🔴 規定なし。プロンプトで明示し、実測で確認する
+  gemini:
+    model: gemini-3.8-flash
+    api_key_env: GEMINI_API_KEY
+    coord_format: yxyx_norm1000    # [ymin, xmin, ymax, xmax]、0〜1000
+  ollama:                          # Gemma。キー不要
+    model: gemma4:e4b              # 16GB Mac に収まる。このPCでは動かさない方針
+    base_url: http://localhost:11434
+    api_key_env: null
+    coord_format: yxyx_norm1000    # 🟡 Gemma 4 の公式ガイドより
+    num_ctx: 4096                  # KV キャッシュ節約のため小さく
