@@ -69,3 +69,35 @@ uv run python scripts/capture_scene.py
 
 - 上流の `assets/so101/` は改変しない。`scene_pickplace.xml` は `so101_new_calib.xml` を include し、床・照明は上流 `scene.xml` と同内容を書き写している(`meshdir`/`strippath` の理由はファイル冒頭のコメント)。
 - 寸法・名前の単一の情報源は `src/so101_vlm/eval/scene_spec.py`(箱の内寸・縁の高さ、作業エリア、カメラ名)。
+
+## データフロー(TASK-0025)
+
+camera / vlm_planner / perception / policy / motion / robot / evaluator / recorder を dora-rs のノードに分け、`dataflow.yml` で配線する。`dataflow.yml` はテンプレートで、実行スクリプトがインタプリタ・設定・試行の指定を埋めて `dora run` に渡す。
+
+```bash
+uv sync --group dataflow          # dora-rs 1.0.1 (通常のテストには不要)
+# 1 試行(API キー不要の偽 VLM = oracle)。結果は media/dataflow/result.json
+uv run python scripts/run_dataflow.py --seed 2 --colour red --instruction "put the red block into the box"
+```
+
+- 終了コード: 0 = 成功、1 = 試行は動いたが失敗(VLM・計画・把持など)、2 = 引数の誤り、3 = dora の失敗・時間切れ。
+- sim と real の切り替えは `--config configs/sim.yaml` / `configs/real.yaml` だけ。real のドライバ(robot / camera)は TASK-0034 / 0036 で実装するまで、起動時に `NotImplementedError` で止まる。
+- VLM は `configs/sim.yaml` の `vlm.provider`(`oracle` または `configs/vlm.yaml` のプロバイダ)で選ぶ。
+- dora なしで同じ配線を確かめるには、`so101_vlm.nodes.local_runner.LocalRunner`(同じプロセス内で配線を再生。テストで使う)。
+- ノードのロジックは dora に依存しない(`src/so101_vlm/nodes/`)。dora との接続は `dora_runtime.py` だけ。
+
+## 複数試行の評価(TASK-0026)
+
+シードと指示を変えた試行を繰り返し、試行ごとの記録(`trials.csv`)と成功率・失敗の分類を出す。
+
+```bash
+# API キー不要の偽 VLM(真の配置から枠を作る)で 20 試行(約 25 秒)
+uv run python scripts/run_eval.py --provider oracle --trials 20 --seed 0
+# 実際の VLM(configs/vlm.yaml のプロバイダ。キーは環境変数)
+uv run python scripts/run_eval.py --provider gemini --trials 20 --seed 0 --min-success-rate 0.7
+```
+
+- 試行 i のシードは `--seed + i`、対象の色は `--colours`(既定は red,blue,green)を順に回す。指示は `--instruction-template` の `{colour}` を色名に置き換える。
+- 出力は `results/<run-id>/trials.csv`(1 試行 1 行。シード・指示・プロバイダ・モデル・検出結果・成否・失敗の種類・時間・検出誤差)と `summary.json`。`results/` は git 管理外。同じ `--run-id` は上書きしない。
+- 失敗の種類は 8 種(vlm_failure / perception_failure / planning_failure / grasp_slip / drop / collision_other / knocked_over / not_in_box)で、集計では VLM・IK・把持・配置の 4 分類にもまとめる。
+- 終了コード: 0 = 完了、1 = `--min-success-rate` 未達、2 = 引数・設定・API キーの誤り。

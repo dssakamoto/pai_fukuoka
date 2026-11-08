@@ -6,8 +6,10 @@ IK 失敗 = planning_failure、把持失敗 = grasp_slip / drop、配置失敗 =
 """
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from enum import Enum
+from types import MappingProxyType
 
 from so101_vlm.eval.eval_config import FailureConfig
 from so101_vlm.eval.judge import JudgeResult
@@ -24,6 +26,30 @@ class FailureKind(str, Enum):
     COLLISION_OTHER = "collision_other"  # 他のブロックを動かした
     KNOCKED_OVER = "knocked_over"  # 最終の傾きが大きい
     NOT_IN_BOX = "not_in_box"  # 上のどれでもなく判定が失敗
+
+
+class FailureGroup(str, Enum):
+    """【機能概要】: design.md 4.8 の 4 分類 (VLM 失敗 / IK 失敗 / 把持失敗 / 配置失敗)。集計の表に使う 🔵"""
+
+    VLM = "vlm"
+    IK = "ik"
+    GRASP = "grasp"
+    PLACE = "place"
+
+
+# 🟡 Intent: 細かい種類 (8 種) を design.md 4.8 の 4 分類に寄せる。知覚の失敗は VLM の出力 (枠・深度) が原因なので VLM に入れる。
+FAILURE_GROUP: Mapping[FailureKind, FailureGroup] = MappingProxyType(
+    {
+        FailureKind.VLM_FAILURE: FailureGroup.VLM,
+        FailureKind.PERCEPTION_FAILURE: FailureGroup.VLM,
+        FailureKind.PLANNING_FAILURE: FailureGroup.IK,
+        FailureKind.GRASP_SLIP: FailureGroup.GRASP,
+        FailureKind.DROP: FailureGroup.GRASP,
+        FailureKind.COLLISION_OTHER: FailureGroup.PLACE,
+        FailureKind.KNOCKED_OVER: FailureGroup.PLACE,
+        FailureKind.NOT_IN_BOX: FailureGroup.PLACE,
+    }
+)
 
 
 @dataclass(frozen=True)
