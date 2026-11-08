@@ -76,7 +76,7 @@ def _failed(seed, colour, instruction, kind, error, vlm_time_s, plan=None) -> Tr
 
 # 🟡 Intent: 深度は上面を見ているので、ブロック中心は表面の点から半辺ぶん下 (projection.bbox_to_base_point の注記)。
 #    箱の位置は v1 では固定なので、置く高さは底板の上面 (SCENE_SPEC) を使い、xy だけ検出から求める。
-def _estimate_goal(plan: PlanResult, depth: np.ndarray, cal: Calibration, instruction: str) -> Goal:
+def estimate_goal(plan: PlanResult, depth: np.ndarray, cal: Calibration, instruction: str) -> Goal:
     pick = bbox_to_base_point(plan.pick.bbox_px, depth, cal.camera, cal.T_base_cam)
     pick[2] -= SCENE_SPEC.block_half_size
     place = bbox_to_base_point(plan.place.bbox_px, depth, cal.camera, cal.T_base_cam)
@@ -124,7 +124,7 @@ def run_trial(
             return _failed(seed, colour, instruction, FailureKind.VLM_FAILURE, str(exc), time.perf_counter() - started)
         vlm_time_s = time.perf_counter() - started
         try:
-            goal = _estimate_goal(plan, depth, cal, instruction)
+            goal = estimate_goal(plan, depth, cal, instruction)
         except ValueError as exc:
             return _failed(seed, colour, instruction, FailureKind.PERCEPTION_FAILURE, str(exc), vlm_time_s, plan)
         run = run_goal(robot, goal, seed=seed, colour=colour, configs=configs, frame_sink=frame_sink)

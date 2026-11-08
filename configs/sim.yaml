@@ -1,0 +1,18 @@
+# データフロー (dataflow.yml) の設定: シミュレーション (TASK-0025)。
+# camera と robot ノードがドライバを選ぶのに使う。他のノードは同じファイルから、シーン・キャリブレーション・VLM を読む。
+# sim と real の切り替えは、dataflow を起動するときの --config を configs/real.yaml にするだけ。
+mode: sim
+scene: assets/scene_pickplace.xml
+calibration: configs/calibration.yaml
+robot:
+  kind: sim
+camera:
+  kind: sim
+  name: cam_top
+  width: 640
+  height: 480
+vlm:
+  # oracle = 真の配置から枠を作る偽 VLM (API キー不要)。anthropic / openai / gemini / ollama は configs/vlm.yaml のプロバイダ。
+  provider: oracle
+output_dir: media/dataflow   # media/ は git 管理外
+timeout_s: 180               # scripts/run_dataflow.py が dora run を打ち切るまでの時間 [s]

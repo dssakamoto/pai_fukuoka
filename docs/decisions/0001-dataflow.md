@@ -63,3 +63,12 @@ dataflow = ["dora-rs-cli==1.0.1", "dora-rs==1.0.1", "pyarrow"]
 ## 代替案 (multiprocessing)
 
 動作が不安定になった場合のみ、同じノード構成を `multiprocessing.Process` + `Queue` (大きい画像は `shared_memory`) で実装する。今回は採用しないため、プロトタイプは作っていない。
+
+## TASK-0025 での確認と変更 (2026-11-07、Windows 11 / Python 3.12)
+
+- **Windows でも `dora run` が動いた**(dora-rs-cli / dora-rs 1.0.1、`uv sync --group dataflow`)。9 ノード・循環配線の 1 試行が約 15 秒で終わり、結果は `run_trial`(TASK-0024)と一致した(seed 2: 成功、pick 誤差 9.30 mm。seed 1: `planning_failure` / `obstacle_clearance`)。終了後に dora のプロセスは残らない。
+- **`path: python` は Windows では venv の Python に解決されない**(PATH に venv を先頭に置いても別の Python が起動し、`No module named 'dora'` になる)。`path` にインタプリタのフルパス、`args` に `-m so101_vlm.nodes.run <id>` を書けば動く。そこで `dataflow.yml` はテンプレートにし、`scripts/run_dataflow.py` が `sys.executable` などを埋める(値は JSON 文字列にして YAML 注入を防ぐ)。
+- **終了**: 配線が循環している(robot -> ... -> motion -> robot)ため、「入力が全て閉じたら終わる」は使えない。evaluator が `result` を出したあと `stop` を全ノードに送り、各ノードがそれで終わる。
+- **motion**: 既存の `run_trajectory` を、通信越しの代理ロボット(`joint_command` を送り、同じ seq の `robot_state` を待つ)に対して走らせる。1 試行 約 380 周期でも遅延は問題にならなかった。
+- **ログ**: `dora-rs/dora#2742 diagnostic` の WARN と、終了時の `zenoh ... session closed` の ERROR が出る(動作に影響なし)。
+- 「未確認」だった項目のうち、MuJoCo レンダラをノードに入れた動作(camera)は確認できた。実機ドライバ・30 Hz 以上・1 ノードが落ちたときの他ノードの挙動は未確認。

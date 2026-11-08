@@ -18,6 +18,12 @@ dev = [
     "pytest",
     "pytest-cov",
 ]
+# dora-rs のデータフロー (dataflow.yml) を動かすときだけ: uv sync --group dataflow (ADR 0001。講義と同じ 1.0.1)
+dataflow = [
+    "dora-rs-cli==1.0.1",
+    "dora-rs==1.0.1",
+    "pyarrow",
+]
 
 [build-system]
 requires = ["hatchling"]

@@ -1,0 +1,101 @@
+# so101-vlm-pickplace のデータフロー (TASK-0025)。これは「テンプレート」。{{...}} は scripts/run_dataflow.py が埋める。
+#   uv run python scripts/run_dataflow.py --seed 0 --colour red --instruction "put the red block into the box"
+# {{PYTHON}} は、この環境のインタプリタ。Windows では `path: python` が venv の Python に解決されないため、明示する。
+# 1 ノード = 1 プロセス (python -m so101_vlm.nodes.run <id>)。ノードは薄い入出力の殻で、処理は src/so101_vlm/ のライブラリを呼ぶ。
+# 流れ: task -> robot(初期配置) -> camera -> vlm_planner -> perception -> policy -> motion <-> robot -> evaluator -> (stop 全員)
+# sim / real の切り替えは {{CONFIG}} (configs/sim.yaml / configs/real.yaml) だけ。camera と robot がドライバを選ぶ。
+# 終了: evaluator が result を出して stop を全ノードに送る (配線が循環していても、全員が確実に終わる)。
+nodes:
+  - id: task
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run task
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}, TASK_SEED: {{SEED}}, TASK_COLOUR: {{COLOUR}}, TASK_INSTRUCTION: {{INSTRUCTION}}}
+    inputs:
+      stop: evaluator/stop
+    outputs: [task]
+
+  - id: robot
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run robot
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}}
+    inputs:
+      task: task/task
+      joint_command: motion/joint_command
+      stop: evaluator/stop
+    outputs: [robot_state, world]
+
+  - id: camera
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run camera
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}}
+    inputs:
+      world: robot/world
+      stop: evaluator/stop
+    outputs: [rgb, depth, intrinsics]
+
+  - id: vlm_planner
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run vlm_planner
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}}
+    inputs:
+      task: task/task
+      rgb: camera/rgb
+      stop: evaluator/stop
+    outputs: [detections, failure_vlm]
+
+  - id: perception
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run perception
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}}
+    inputs:
+      task: task/task
+      detections: vlm_planner/detections
+      depth: camera/depth
+      intrinsics: camera/intrinsics
+      stop: evaluator/stop
+    outputs: [targets_3d, failure_perception]
+
+  - id: policy
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run policy
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}}
+    inputs:
+      targets_3d: perception/targets_3d
+      robot_state: robot/robot_state
+      stop: evaluator/stop
+    outputs: [joint_trajectory, failure_policy]
+
+  - id: motion
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run motion
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}}
+    inputs:
+      joint_trajectory: policy/joint_trajectory
+      robot_state: robot/robot_state
+      stop: evaluator/stop
+    outputs: [joint_command, step, motion_done]
+
+  - id: evaluator
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run evaluator
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}}
+    inputs:
+      task: task/task
+      world: robot/world
+      step: motion/step
+      motion_done: motion/motion_done
+      targets_3d: perception/targets_3d
+      failure_vlm: vlm_planner/failure_vlm
+      failure_perception: perception/failure_perception
+      failure_policy: policy/failure_policy
+    outputs: [result, stop]
+
+  - id: recorder
+    path: {{PYTHON}}
+    args: -m so101_vlm.nodes.run recorder
+    env: {CONFIG: {{CONFIG}}, OUT_DIR: {{OUT_DIR}}}
+    inputs:
+      detections: vlm_planner/detections
+      targets_3d: perception/targets_3d
+      result: evaluator/result
+      stop: evaluator/stop

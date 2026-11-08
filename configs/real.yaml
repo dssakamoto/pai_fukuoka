@@ -1,0 +1,17 @@
+# データフロー (dataflow.yml) の設定: 実機 (TASK-0025 では雛形。実機ドライバは TASK-0034 / 0036 で実装する)。
+# このファイルを選ぶと、robot / camera ノードは起動時に NotImplementedError で止まる (実機に誤って指令を送らない)。
+mode: real
+scene: assets/scene_pickplace.xml   # IK のモデルに使う (描画・物理には使わない)
+calibration: configs/calibration.yaml   # TASK-0036 で実機用のものに差し替える
+robot:
+  kind: so101
+  port: /dev/ttyACM0   # TASK-0033 で固定名にする
+camera:
+  kind: real
+  name: cam_top
+  width: 640
+  height: 480
+vlm:
+  provider: anthropic
+output_dir: media/dataflow
+timeout_s: 180
