@@ -24,6 +24,10 @@ dataflow = [
     "dora-rs==1.0.1",
     "pyarrow",
 ]
+# LeRobot 形式での記録 (TASK-0027)。torch を含む重い依存なので、記録・読み込みを確かめるときだけ: uv sync --group record
+record = [
+    "lerobot[dataset]==0.7.0",
+]
 
 [build-system]
 requires = ["hatchling"]
@@ -34,9 +38,19 @@ packages = ["src/so101_vlm"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# --strict-markers: 印の綴り間違いを黙って通さない。
+addopts = "--strict-markers"
+markers = [
+    "render: MuJoCo のオフスクリーン描画 (OpenGL) が要る。GPU・ディスプレイのない CI では `-m \"not render\"` で除く",
+    "api: 実際の VLM API (キーとネットワークが要る)。CI では `-m \"not api\"` で除く。キーがなければテスト側でスキップする",
+]
 
 [tool.coverage.run]
 source = ["so101_vlm"]
+# dora の子プロセスとして動くため、測定に載らない (動作は tests/nodes/test_nodes_dora_run.py が実際に dora run で確かめる)
+omit = ["src/so101_vlm/nodes/run.py", "src/so101_vlm/nodes/dora_runtime.py"]
 
 [tool.coverage.report]
 show_missing = true
+# AC-07: 対象ロジックのカバレッジ 80% 以上。CI (描画なし) でも、これを下回ったら失敗にする
+fail_under = 80

@@ -1,0 +1,9 @@
+# LeRobot 形式での記録の設定 (TASK-0027)。仕様の確認結果は docs/notes/lerobot-format.md。
+# fps: 30 は SO-101 の記録 (lerobot-record) の標準値。sim の制御周期 (50 Hz) からは間引いて書く。
+#      v2 の実機デモ (TASK-0040) も同じ値にして、同じ形式で SmolVLA の微調整に使えるようにする。
+fps: 30
+robot_type: so101
+camera: top          # 画像の特徴量名は observation.images.<camera>
+use_videos: true     # true: カメラ画像を mp4 で保存 (LeRobot の標準)。false: 画像のまま保存 (テスト・確認用)
+repo_id: local/so101-vlm-pickplace   # <ユーザ>/<名前>。ローカルで使うだけなので local。Hub には送らない
+image_writer_threads: 4   # 画像の書き出しを別スレッドで行う (LeRobot のチュートリアルの値)。0 なら同期

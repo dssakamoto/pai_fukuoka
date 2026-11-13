@@ -6,6 +6,7 @@ sim 専用の組み立て層。物理の部分 (計画・実行・判定) は fi
 """
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -36,6 +37,8 @@ from so101_vlm.vlm.base import VlmClient
 from so101_vlm.vlm.schema import PlanError, PlanResult
 
 _MM = 1000.0
+# 試行の開始 (配置と撮影の直後、VLM を呼ぶ前) に 1 回呼ぶ。記録 (TASK-0027) が最初の観測を取るのに使う
+StartSink = Callable[[mujoco.MjModel, mujoco.MjData], None]
 
 
 @dataclass(frozen=True)
@@ -96,12 +99,14 @@ def run_trial(
     safety_config: SafetyConfig | None = None,
     trajectory_config: TrajectoryConfig | None = None,
     frame_sink: FrameSink | None = None,
+    start_sink: StartSink | None = None,
 ) -> TrialOutcome:
     """【機能概要】: seed の配置を撮影し、VLM の検出から colour のブロックを箱に入れる 1 試行を実行する 🔵
 
     【実装方針】: 配置 -> 撮影 (RGB + 深度) -> vlm.plan -> 知覚 -> run_goal。colour は判定する対象 (真値) で、
     VLM には instruction だけを渡す。PlanError は vlm_failure、知覚の ValueError は perception_failure として
     記録し、動かさない。それ以外の例外 (認証エラーなど) は握りつぶさずそのまま上に出す。
+    start_sink(model, data) は配置と撮影の直後に 1 回、frame_sink は run_goal の毎周期に呼ぶ (動かない試行では呼ばれない)。
     不正な seed / colour / instruction は、何かを始める前に ValueError。
     """
     seed = require_int("seed", seed, 0)
@@ -117,6 +122,8 @@ def run_trial(
         place_blocks(model, data, sample_layout(seed, place.n_blocks, place.area, place.min_gap, place.max_attempts))
         rgb, depth = render_rgbd(model, data, SCENE_SPEC.camera_name, cal.camera.width, cal.camera.height)
         truth = np.array(data.xpos[model.body(COLOUR_TO_BODY[colour]).id])
+        if start_sink is not None:
+            start_sink(model, data)
         started = time.perf_counter()
         try:
             plan = vlm.plan(rgb, instruction)

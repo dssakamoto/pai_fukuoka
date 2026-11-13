@@ -7,10 +7,13 @@
 
 試行 i のシードは --seed + i、対象の色は --colours を順に回す。出力: results/<run-id>/trials.csv と summary.json
 (results/ は git 管理外)。run-id の既定は 日時-プロバイダ。1 試行ごとに CSV に追記するので、途中で止まっても記録は残る。
+--record-dir を付けると、動いた試行を LeRobot のデータセット (v3.0) にも記録する (uv sync --group record が必要)。
 終了コード: 0 = 完了、1 = --min-success-rate を下回った、2 = 引数・設定・プロバイダの誤り (API キー未設定を含む)。
 """
 
 import argparse
+import contextlib
+import functools
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -26,7 +29,10 @@ from so101_vlm.eval.runner import (
     summarize,
     write_summary,
 )
+from so101_vlm.eval.trial import run_trial
 from so101_vlm.perception.calibration import load_calibration
+from so101_vlm.record.lerobot_writer import LeRobotWriter
+from so101_vlm.record.sim_episode import record_trial
 from so101_vlm.robot.model_paths import REPO_ROOT
 from so101_vlm.vlm import MissingApiKeyError, create_client
 from so101_vlm.vlm.config import load_vlm_config
@@ -68,6 +74,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--instruction-template", default=DEFAULT_INSTRUCTION, help="{colour} を色名に置き換える")
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
     parser.add_argument("--run-id", default=None)
+    parser.add_argument(
+        "--record-dir", type=Path, default=None,
+        help="動いた試行を LeRobot のデータセットとして記録する (新しいディレクトリ。要 uv sync --group record。1 試行 約 35 秒増える)",
+    )
     parser.add_argument("--min-success-rate", type=float, default=None, help="下回ったら終了コード 1 (例: 0.7)")
     args = parser.parse_args(argv)
 
@@ -79,10 +89,18 @@ def main(argv: list[str] | None = None) -> int:
     if (out / "trials.csv").exists():
         print(f"{out / 'trials.csv'} が既にあります。別の --run-id を指定してください (前回の記録を上書きしません)", file=sys.stderr)
         return 2
+    if args.record_dir is not None and args.record_dir.exists():
+        print(f"--record-dir {args.record_dir} は既にあります。LeRobot は既存のディレクトリには作れません", file=sys.stderr)
+        return 2
     records: list[TrialRecord] = []
     try:
         factory = _client_factory(args.provider)
-        with TrialCsv(out / "trials.csv") as csv_out:
+        with contextlib.ExitStack() as stack:
+            csv_out = stack.enter_context(TrialCsv(out / "trials.csv"))
+            trial_fn = run_trial
+            if args.record_dir is not None:
+                writer = stack.enter_context(LeRobotWriter(args.record_dir))
+                trial_fn = functools.partial(record_trial, writer)
 
             def on_record(done: int, total: int, r: TrialRecord) -> None:
                 csv_out.append(r)
@@ -91,9 +109,9 @@ def main(argv: list[str] | None = None) -> int:
 
             run_trials(
                 args.trials, args.seed, factory, colours=tuple(c for c in args.colours.split(",") if c),
-                instruction_template=args.instruction_template, on_record=on_record,
+                instruction_template=args.instruction_template, trial_fn=trial_fn, on_record=on_record,
             )
-    except (MissingApiKeyError, ValueError, NotImplementedError, FileNotFoundError) as exc:
+    except (MissingApiKeyError, ValueError, NotImplementedError, FileNotFoundError, ImportError) as exc:
         _discard_if_empty(out, records)
         label = "API キーがありません" if isinstance(exc, MissingApiKeyError) else "引数・設定の誤り"
         print(f"{label}: {exc}", file=sys.stderr)
