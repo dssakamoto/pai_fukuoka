@@ -41,12 +41,14 @@ def test_camera_exists(settled):
     assert mujoco.mj_name2id(settled[0], mujoco.mjtObj.mjOBJ_CAMERA, SPEC.camera_name) >= 0
 
 
+@pytest.mark.render
 def test_rgb_and_depth_shape_and_dtype(rgbd):
     rgb, depth = rgbd
     assert rgb.shape == (480, 640, 3) and rgb.dtype == np.uint8
     assert depth.shape == (480, 640) and depth.dtype == np.float32
 
 
+@pytest.mark.render
 def test_depth_is_finite_and_positive(rgbd):
     depth = rgbd[1]
     assert np.isfinite(depth).all() and (depth > 0).all()
@@ -87,6 +89,7 @@ def _project(model, data, point):
     return SPEC.image_width / 2 + f * c[0] / z, SPEC.image_height / 2 - f * c[1] / z, z
 
 
+@pytest.mark.render
 @pytest.mark.parametrize("name", SPEC.block_names)
 def test_block_visible_and_depth_matches(settled, rgbd, name):
     model, data = settled
@@ -98,6 +101,7 @@ def test_block_visible_and_depth_matches(settled, rgbd, name):
     assert rgbd[1][vi, ui] == pytest.approx(z, abs=0.005)
 
 
+@pytest.mark.render
 def test_box_visible_and_depth_matches(settled, rgbd):
     model, data = settled
     p = np.array([*SPEC.box_center_xy, SPEC.box_floor_top_z])

@@ -281,14 +281,14 @@ def test_committed_yaml_matches_scene(committed, scene_model):
     )
 
 
-def test_committed_yaml_is_byte_identical_to_save_output(committed, scene_model, tmp_path):
-    """R-02: コミット済みのファイルは save の出力とバイト一致 (手編集の検出)。🔴
+def test_committed_yaml_is_byte_identical_to_save_output(committed, tmp_path):
+    """R-02: コミット済みのファイルは、読み直して save し直した出力とバイト一致 (手編集・書式崩れの検出)。🔴
 
-    MuJoCo の版差で末尾の桁が揺れて落ちる場合は R-01 だけ残す判断を verify-complete に記録する。
+    シーンから作り直した値とのバイト比較はしない: MuJoCo / OS の版で末尾の桁 (約 1e-13) が揺れるため
+    (値の一致は R-01 が atol=1e-9 で見る)。ここでは、ファイルの書式が save の出力のままであることだけを確かめる。
     """
-    fresh = calibration_from_mujoco(scene_model, forwarded(scene_model), "cam_top", W, H)
-    p = tmp_path / "fresh.yaml"
-    save_calibration(fresh, p)
+    p = tmp_path / "resaved.yaml"
+    save_calibration(committed, p)
     assert DEFAULT_CALIBRATION_PATH.read_bytes() == p.read_bytes()
 
 

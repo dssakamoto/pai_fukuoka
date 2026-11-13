@@ -13,9 +13,17 @@ uv sync
 ## テスト
 
 ```bash
-uv run pytest
-uv run pytest --cov   # カバレッジ
+uv run pytest                          # すべて(MuJoCo の描画ができる環境で)
+uv run pytest -m "not render and not api" --cov   # CI と同じ: 描画と実 API を除く + カバレッジ
 ```
+
+- pytest の印: `render` = MuJoCo のオフスクリーン描画(OpenGL)が要る、`api` = 実際の VLM API(キーとネットワークが要る)。印の付いたテストは、GPU・キーのない環境では `-m "not render and not api"` で除く。印は `pyproject.toml` に登録してあり(`--strict-markers`)、綴りを間違えるとエラーになる。
+- カバレッジは 80% 未満で失敗にする(AC-07、`pyproject.toml` の `fail_under`)。描画を除いた構成で約 91%。
+- LeRobot(`--group record`)と dora(`--group dataflow`)は任意の依存で、入っていないと、それらのテストは自動でスキップされる。
+
+### CI(GitHub Actions)
+
+[`.github/workflows/ci.yml`](.github/workflows/ci.yml): `main` への push と pull request で、`uv sync --frozen` の後に上のコマンドを実行する(ubuntu、約 3 分)。アクションは完全なバージョンで固定してある。
 
 ## 環境変数
 
@@ -101,3 +109,31 @@ uv run python scripts/run_eval.py --provider gemini --trials 20 --seed 0 --min-s
 - 出力は `results/<run-id>/trials.csv`(1 試行 1 行。シード・指示・プロバイダ・モデル・検出結果・成否・失敗の種類・時間・検出誤差)と `summary.json`。`results/` は git 管理外。同じ `--run-id` は上書きしない。
 - 失敗の種類は 8 種(vlm_failure / perception_failure / planning_failure / grasp_slip / drop / collision_other / knocked_over / not_in_box)で、集計では VLM・IK・把持・配置の 4 分類にもまとめる。
 - 終了コード: 0 = 完了、1 = `--min-success-rate` 未達、2 = 引数・設定・API キーの誤り。
+
+## LeRobot 形式での記録(TASK-0027)
+
+1 試行を 1 エピソードとして、画像・関節状態・行動(目標関節角)・言語指示を LeRobot のデータセット(v3.0)に保存する。v2 のデモ(実機)と同じ特徴量名・fps(30)なので、そのまま SmolVLA の微調整に使える。仕様と実測は [docs/notes/lerobot-format.md](docs/notes/lerobot-format.md)。
+
+```bash
+uv sync --group record     # lerobot 0.7.0(torch を含む。約 1.3 GB。通常のテストには不要)
+uv run python scripts/run_eval.py --trials 2 --seed 2 --record-dir results/lerobot_demo
+```
+
+- `--record-dir` は新しいディレクトリのみ(LeRobot の制約)。動かなかった試行(VLM・知覚・計画の失敗)はエピソードにならず、`so101_trials.jsonl` に記録だけ残る。
+- 記録つきの 1 試行は約 35 秒(描画が支配的)。評価の本番には付けず、記録したい試行にだけ使う。
+- 設定は `configs/record.yaml`(fps、カメラ名、動画/画像、`repo_id`)。lerobot が無い環境では、記録のテストは自動でスキップされる。
+
+## 実行動画(TASK-0028)
+
+複数の試行をつないで、提出用の動画(mp4)を作る。試行ごとに 指示 → 検出(枠) → 実行 → 判定 のクリップになり、最後に成功率のカードが付く。
+
+```bash
+# API キー不要の偽 VLM で 10 試行、2 倍速(約 1 分 30 秒の動画。作るのに約 3 分)
+uv run python scripts/render_video.py --provider oracle --trials 10 --speed 2 --out media/demo.mp4
+```
+
+- 画面の上に 指示と段階(指示 > 検出 > 実行 > 判定、今の段階を黄色)、検出枠(pick = マゼンタ、place = シアン)、右下に倍速(「2倍速」)、実行中は区間名、判定のときに成功(緑)/失敗(赤)の帯が出る。文字は動画を縮小しても読める大きさ(画像の高さの 1/20)。
+- `--speed` は 30 の約数(1, 2, 3, 5, 6, 10, ...)。1 なら実時間で、倍速の表示は出ない。動画の長さを表示し、1〜3 分から外れるときは警告する(`--trials` と `--speed` で調整)。
+- 動かなかった試行(VLM・知覚・計画の失敗)は、指示・検出・判定の静止画のクリップになる。
+- 日本語フォント(Yu Gothic など)があれば日本語、無ければ英語の表示。`--font` または環境変数 `SO101_VIDEO_FONT` で指定できる。
+- 描画が遅い環境では、1 試行あたり約 20 秒かかる。既存の `--out` は `--overwrite` なしでは上書きしない。

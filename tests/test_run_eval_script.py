@@ -27,6 +27,7 @@ def test_help_exits_zero(script, capsys):
     assert "--provider" in out and "--trials" in out and "--min-success-rate" in out
 
 
+@pytest.mark.render
 def test_small_run_writes_csv_and_summary(script, tmp_path, capsys):
     code = script.main(["--provider", "oracle", "--trials", "2", "--seed", "2", "--out-dir", str(tmp_path), "--run-id", "r"])
     assert code == 0
@@ -66,6 +67,27 @@ def test_bad_arguments_exit_two_and_leave_nothing(script, tmp_path, argv):
     assert code == 2 and not (tmp_path / "b").exists()
 
 
+@pytest.mark.render
 def test_min_success_rate_gates_the_exit_code(script, tmp_path):
     assert script.main(["--trials", "1", "--seed", "2", "--out-dir", str(tmp_path), "--run-id", "ok", "--min-success-rate", "0.5"]) == 0
     assert script.main(["--trials", "1", "--seed", "2", "--out-dir", str(tmp_path), "--run-id", "ng", "--min-success-rate", "1.1"]) == 1
+
+
+def test_existing_record_dir_is_refused_before_anything_runs(script, tmp_path, capsys):
+    record = tmp_path / "ds"
+    record.mkdir()
+    code = script.main(["--trials", "1", "--out-dir", str(tmp_path / "out"), "--run-id", "r", "--record-dir", str(record)])
+    assert code == 2 and "既にあります" in capsys.readouterr().err
+    assert not (tmp_path / "out").exists()
+
+
+def test_record_without_lerobot_is_an_actionable_error_and_leaves_nothing(script, tmp_path, monkeypatch, capsys):
+    import so101_vlm.record.lerobot_writer as writer_module
+
+    def missing():
+        raise ImportError("lerobot が入っていません。`uv sync --group record` で入れてください")
+
+    monkeypatch.setattr(writer_module, "load_lerobot", missing)
+    code = script.main(["--trials", "1", "--out-dir", str(tmp_path / "out"), "--run-id", "r", "--record-dir", str(tmp_path / "ds")])
+    assert code == 2 and "uv sync --group record" in capsys.readouterr().err
+    assert not (tmp_path / "ds").exists() and not (tmp_path / "out" / "r").exists()

@@ -116,6 +116,7 @@ def test_helper_camera_and_T_match_scene(settled, calib):
     np.testing.assert_allclose(data.site_xmat[sid].reshape(3, 3), np.eye(3), atol=1e-9)
 
 
+@pytest.mark.render
 def test_floor_backprojection_is_flat(settled, depth, segmentation, calib):
     """S-02: 床の画素を逆投影すると |z| <= 0.1 mm (主点規約 (w-1)/2・z 深度・符号の回帰)。🟡"""
     camera, T = calib
@@ -128,6 +129,7 @@ def test_floor_backprojection_is_flat(settled, depth, segmentation, calib):
     assert np.abs(P[:, 2]).max() <= FLOOR_TOL_M
 
 
+@pytest.mark.render
 def test_floor_backprojection_with_wrong_principal_point_fails(settled, depth, segmentation, calib):
     """S-03: 負の対照。cx=w/2 規約なら S-02 の許容誤差を超える。🟡
 
@@ -141,6 +143,7 @@ def test_floor_backprojection_with_wrong_principal_point_fails(settled, depth, s
 
 
 # ---------------------------------------------------------------- S-04..S-07
+@pytest.mark.render
 @pytest.mark.parametrize("color", COLORS)
 def test_block_top_center_from_single_pixel_bbox(settled, depth, calib, color):
     """S-04: 上面中心の画素を 1x1 の bbox にすると真値から 2 mm 以内。🟡"""
@@ -162,6 +165,7 @@ def _top_face_bbox(top, T, camera):
     return int(x1), int(y1), int(x2), int(y2)
 
 
+@pytest.mark.render
 @pytest.mark.parametrize("color", COLORS)
 def test_block_top_face_bbox_within_2mm(settled, depth, calib, color):
     """S-05: bbox が上面を正しく囲めば、shrink=0.5 で上面中心から 2 mm 以内。🟡 (TASK-0024 の前提)"""
@@ -172,6 +176,7 @@ def test_block_top_face_bbox_within_2mm(settled, depth, calib, color):
     assert np.linalg.norm(p - top) <= SCENE_TOL_M
 
 
+@pytest.mark.render
 def test_box_floor_center(settled, depth, segmentation, calib):
     """S-06: 箱の底板の中心 (0.20, 0.19, 0.005) も 2 mm 以内で復元できる。🟡"""
     camera, T = calib
@@ -184,6 +189,7 @@ def test_box_floor_center(settled, depth, segmentation, calib):
     assert np.linalg.norm(p - center) <= SCENE_TOL_M
 
 
+@pytest.mark.render
 def test_surface_to_block_center_correction_subtracts_half_size(settled, depth, calib):
     """S-07: 上面 → ブロック中心の補正は半辺を「引く」(足すと 30 mm ずれる)。呼び出し側の責務の例示。🟡"""
     camera, T = calib
@@ -197,6 +203,7 @@ def test_surface_to_block_center_correction_subtracts_half_size(settled, depth, 
 
 
 # ---------------------------------------------------------------- S-08
+@pytest.mark.render
 def test_depth_is_z_depth_not_euclidean_distance(settled, depth, segmentation, calib):
     """S-08: 描画深度は z 深度 (光軸方向) であり、ユークリッド距離ではない。🟡"""
     camera, T = calib
@@ -218,6 +225,7 @@ def test_depth_is_z_depth_not_euclidean_distance(settled, depth, segmentation, c
 
 
 # ---------------------------------------------------------------- S-09
+@pytest.mark.render
 @pytest.mark.parametrize("color", COLORS)
 def test_characterize_silhouette_bbox_bias_for_task0024(settled, depth, segmentation, calib, color):
     """特性記録 (要件ではない): 見えている輪郭全体の bbox 中心は上面中心から水平に 5〜15 mm ずれる。🔴

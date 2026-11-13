@@ -51,6 +51,7 @@ def no_motion(monkeypatch):
 
 
 # --- 失敗時は動かない (FR-03) -----------------------------------------------
+@pytest.mark.render
 def test_vlm_failure_records_failure_and_does_not_move(no_motion):
     vlm = RecordingVlm(error=PlanError("no purple block"))
     seen = []
@@ -62,6 +63,7 @@ def test_vlm_failure_records_failure_and_does_not_move(no_motion):
     assert no_motion == [] and seen == []
 
 
+@pytest.mark.render
 def test_perception_failure_records_failure_and_does_not_move(no_motion, monkeypatch):
     def broken(*a, **k):
         raise ValueError("bbox 中央領域に有効な深度がありません")
@@ -74,6 +76,7 @@ def test_perception_failure_records_failure_and_does_not_move(no_motion, monkeyp
     assert no_motion == []
 
 
+@pytest.mark.render
 def test_target_far_outside_workspace_is_refused_before_motion():
     # 画像の隅 (作業台の外) を指す検出。IK / 作業範囲の検査で拒否され、実行されない
     far = PlanResult(Detection("red block", (0, 0, 20, 20), 1.0), Detection("box", (300, 250, 420, 370), 1.0))
@@ -85,6 +88,7 @@ def test_target_far_outside_workspace_is_refused_before_motion():
 
 
 # --- VLM への入力 ------------------------------------------------------------
+@pytest.mark.render
 def test_vlm_receives_the_camera_image_and_the_instruction():
     vlm = RecordingVlm(error=PlanError("stop here"))
     run_trial(0, "red", INSTRUCTION, vlm)
@@ -99,6 +103,7 @@ def red_seed0():
     return run_trial(0, "red", INSTRUCTION, _oracle(0, "red"))
 
 
+@pytest.mark.render
 def test_full_trial_succeeds_with_cached_style_detection(red_seed0):
     out = red_seed0
     assert out.success and out.failure is None and out.error is None
@@ -107,6 +112,7 @@ def test_full_trial_succeeds_with_cached_style_detection(red_seed0):
     assert out.plan.pick.label.startswith("red")
 
 
+@pytest.mark.render
 def test_estimates_are_close_to_the_truth(red_seed0):
     out = red_seed0
     assert out.pick_error_mm is not None and out.pick_error_mm < 15.0
@@ -115,12 +121,14 @@ def test_estimates_are_close_to_the_truth(red_seed0):
     assert np.hypot(out.place_estimate[0] - 0.20, out.place_estimate[1] - 0.19) < 0.02
 
 
+@pytest.mark.render
 def test_trial_is_deterministic(red_seed0):
     again = run_trial(0, "red", INSTRUCTION, _oracle(0, "red"))
     assert again.pick_estimate == red_seed0.pick_estimate
     assert again.success == red_seed0.success
 
 
+@pytest.mark.render
 def test_frame_sink_is_called_during_execution():
     seen = []
     out = run_trial(2, "red", INSTRUCTION, _oracle(2, "red"), frame_sink=lambda m, d, i, label: seen.append(label))

@@ -131,6 +131,7 @@ def video_run(script, tmp_path_factory):
     return script.main(argv), video, out_dir
 
 
+@pytest.mark.render
 def test_video_png_and_summary_are_saved(video_run):
     """TC-CLI-08 動画を保存できる (1 件のみ) 🔵 (完了条件 2。PNG の目視は verify-complete で行う)"""
     import imageio.v2 as imageio

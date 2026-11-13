@@ -86,6 +86,7 @@ def test_robot_node_rejects_commands_before_the_task():
         node.on_input("joint_command", np.zeros(6), {"seq": 1})
 
 
+@pytest.mark.render
 def test_camera_renders_only_the_initial_world():
     robot, rbus = _node("robot")
     robot.on_input("task", TASK_MSG, {})

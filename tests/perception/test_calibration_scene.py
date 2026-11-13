@@ -94,6 +94,7 @@ def _top_face(model, data, color, camera, T):
     return c + R @ [0, 0, h], (int(x1), int(y1), int(x2), int(y2))
 
 
+@pytest.mark.render
 @pytest.mark.parametrize("color", COLORS)
 def test_default_layout_block_top_recovered_within_2mm(model, default_data, default_depth, cal, color):
     """I-01: 既定配置の 3 個を上面 bbox + shrink=0.5 で 2 mm 以内に復元する。🟡"""
@@ -107,6 +108,7 @@ def test_default_layout_block_top_recovered_within_2mm(model, default_data, defa
     assert np.linalg.norm(p - top) <= SCENE_TOL_M  # 【確認内容】: 2 mm 以内
 
 
+@pytest.mark.render
 @pytest.mark.parametrize("seed", SEEDS)
 def test_random_layout_block_tops_recovered_within_2mm(model, cal, seed):
     """I-02: ランダム配置 seed 0〜9 の 30 個を 2 mm 以内に復元する。🟡 (実測最大 1.153 mm, seed 9 green)"""
@@ -126,6 +128,7 @@ def test_random_layout_block_tops_recovered_within_2mm(model, cal, seed):
         assert err_mm <= 1e3 * SCENE_TOL_M, f"seed={seed} color={color} err={err_mm:.3f} mm bbox={bbox}"
 
 
+@pytest.mark.render
 def test_floor_backprojection_is_flat_with_committed_calibration(model, default_depth, segmentation, cal):
     """I-03: 床の逆投影が平ら (|z| <= 0.1 mm。主点規約・符号の回帰)。🔵"""
     # Given: 8 px 間隔の格子のうち床の画素
@@ -141,6 +144,7 @@ def test_floor_backprojection_is_flat_with_committed_calibration(model, default_
     assert np.abs(P[:, 2]).max() <= FLOOR_TOL_M  # 【確認内容】: 実測 0.0076 mm
 
 
+@pytest.mark.render
 def test_block_center_correction_from_top_point(model, default_data, default_depth, cal):
     """I-04: 上面の点から半辺を引くとブロック中心になる (要件 4.1 の例示)。🟡"""
     top, bbox = _top_face(model, default_data, "red", cal.camera, cal.T_base_cam)

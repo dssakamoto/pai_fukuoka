@@ -33,6 +33,7 @@ def seed2(tmp_path_factory):
     return runner.run(), runner
 
 
+@pytest.mark.render
 def test_dataflow_gives_the_same_result_as_run_trial(seed2):
     result, _ = seed2
     expected = _trial(2)
@@ -44,6 +45,7 @@ def test_dataflow_gives_the_same_result_as_run_trial(seed2):
     assert result["judge"]["reasons"] == []
 
 
+@pytest.mark.render
 def test_every_node_took_part_in_the_run(seed2):
     _, runner = seed2
     emitted = set(runner.log)
@@ -55,11 +57,13 @@ def test_every_node_took_part_in_the_run(seed2):
         assert expected in emitted, expected
 
 
+@pytest.mark.render
 def test_recorder_wrote_the_trial(seed2):
     _, runner = seed2
     assert runner.recorded_paths and runner.recorded_paths[0].exists()
 
 
+@pytest.mark.render
 def test_vlm_failure_never_moves_the_robot():
     def failing(cfg, task):
         class C:
@@ -79,6 +83,7 @@ def test_vlm_failure_never_moves_the_robot():
     assert ("policy", "joint_trajectory") not in set(runner.log)
 
 
+@pytest.mark.render
 def test_planning_failure_matches_run_trial_and_never_moves_the_robot():
     expected = _trial(1)  # seed 1 は obstacle_clearance で計画が拒否される
     assert expected.failure is FailureKind.PLANNING_FAILURE
@@ -89,6 +94,7 @@ def test_planning_failure_matches_run_trial_and_never_moves_the_robot():
     assert ("motion", "joint_command") not in set(runner.log)
 
 
+@pytest.mark.render
 def test_runner_without_a_result_is_an_error():
     runner = LocalRunner(
         CFG, seed=2, colour="red", instruction=INSTRUCTION,

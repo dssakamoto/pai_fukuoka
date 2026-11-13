@@ -210,6 +210,7 @@ def real_run(tmp_path_factory):
     return records, seen, out
 
 
+@pytest.mark.render
 def test_real_run_produces_one_record_per_trial_and_a_rate(real_run):
     records, seen, _ = real_run
     assert len(records) == 4 and [r.seed for r in records] == [0, 1, 2, 3]
@@ -222,6 +223,7 @@ def test_real_run_produces_one_record_per_trial_and_a_rate(real_run):
     assert sum(s.by_failure.values()) == 4 - s.n_success
 
 
+@pytest.mark.render
 def test_real_run_csv_and_summary_files(real_run, tmp_path):
     records, _, _ = real_run
     csv_path = write_csv(tmp_path / "trials.csv", records)

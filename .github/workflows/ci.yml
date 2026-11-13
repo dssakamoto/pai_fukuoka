@@ -1,0 +1,35 @@
+# 単体テストの自動実行 (TASK-0030)。
+# 描画 (OpenGL が要る: pytest の印 render) と実 API (印 api) のテストは、GPU・キーのない CI では除く。
+# カバレッジ 80% 未満 (AC-07) は失敗にする (pyproject.toml の fail_under)。
+# LeRobot (record) と dora (dataflow) は重い・任意の依存なので入れない。それらのテストは、入っていなければスキップされる。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7.0.1
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          enable-cache: true
+
+      # Python は .python-version (3.12) から。--frozen: uv.lock のとおりに入れる (ロックを更新しない)
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Unit tests (no rendering, no real API) with coverage
+        run: uv run pytest -m "not render and not api" --cov
