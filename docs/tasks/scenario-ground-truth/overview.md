@@ -26,12 +26,12 @@
 
 ## 全体進捗
 
-- [ ] SGT-001 〜 SGT-014(1/14 完了。SGT-001 は 2026-11-15 に完了)
+- [ ] SGT-001 〜 SGT-014(2/14 完了。SGT-001・SGT-002 は 2026-11-15 に完了)
 
 ## タスク一覧
 
 - [x] [SGT-001: 検証関数を中立モジュールへ移設する](SGT-001.md) - 1h (TDD) 🔵 ✅ 完了 (2026-11-15。コミット 2b915d3)
-- [ ] [SGT-002: 依存の向きを検査する pytest を追加する](SGT-002.md) - 1h (TDD) 🔵
+- [x] [SGT-002: 依存の向きを検査する pytest を追加する](SGT-002.md) - 1h (TDD) 🔵 ✅ 完了 (2026-11-15。コミット 80bb94a)
 - [ ] [SGT-003: SceneGeometry と PlaceRegion を XML から読めるようにする](SGT-003.md) - 2h (TDD) 🔵
 - [ ] [SGT-004: 成功判定を PlaceRegion 基準にする](SGT-004.md) - 2h (TDD) 🔵
 - [ ] [SGT-005: Scenario と sample_scenario(Fixed)を追加する](SGT-005.md) - 2h (TDD) 🔵
