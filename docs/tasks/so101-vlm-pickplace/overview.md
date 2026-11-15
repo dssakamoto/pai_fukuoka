@@ -12,6 +12,7 @@
 - **旧タスク一覧**: [📝 tasks.md](../../tasks.md)(T-01〜T-49。本ファイルの TASK-0001〜0049 と 1 対 1 で対応)
 - **図解版**: [🖼️ 要件定義書.html](../../要件定義書.html)
 - **コンテキストノート**: [📝 note.md](../../spec/so101-vlm-pickplace/note.md)
+- **別系列の改善計画**: [📋 scenario-ground-truth](../scenario-ground-truth/overview.md)(SGT-001〜014。箱位置の一般化。ここの番号には含めない)
 - API 仕様、DB 設計、TypeScript インターフェースは、このプロジェクトに該当しない(Web API・DB がないため)。インターフェースは design.md 4章の Python Protocol を参照。
 
 ## 工数の前提
