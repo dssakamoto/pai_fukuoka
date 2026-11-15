@@ -100,6 +100,20 @@ def oracle_client_factory(calibration: Calibration | None = None) -> Callable[[i
     return client_for
 
 
+def validate_trial_plan(
+    n_trials: object, base_seed: object, colours: Sequence[str], instruction_template: str
+) -> tuple[int, int, tuple[str, ...]]:
+    """【機能概要】: 試行列の指定を検査して (試行数, 最初のシード, 色の並び) を返す。不正は ValueError 🔵"""
+    n = require_int("n_trials", n_trials, 1)
+    seed = require_int("base_seed", base_seed, 0)
+    colours = tuple(colours)
+    if not colours or any(c not in COLOUR_TO_BODY for c in colours):
+        raise ValueError(f"colours は {DEFAULT_COLOURS} から 1 つ以上で指定してください: {colours!r}")
+    if _COLOUR_SLOT not in instruction_template:
+        raise ValueError(f"instruction_template には {_COLOUR_SLOT} が必要です: {instruction_template!r}")
+    return n, seed, colours
+
+
 def run_trials(
     n_trials: int,
     base_seed: int,
@@ -118,13 +132,7 @@ def run_trials(
     on_record(何件目, 全件数, 記録) は 1 試行ごとに呼ぶ。trial_kwargs は run_trial にそのまま渡す。
     不正な引数は ValueError。run_trial の想定外の例外はそのまま上に出す。
     """
-    n_trials = require_int("n_trials", n_trials, 1)
-    base_seed = require_int("base_seed", base_seed, 0)
-    colours = tuple(colours)
-    if not colours or any(c not in COLOUR_TO_BODY for c in colours):
-        raise ValueError(f"colours は {DEFAULT_COLOURS} から 1 つ以上で指定してください: {colours!r}")
-    if _COLOUR_SLOT not in instruction_template:
-        raise ValueError(f"instruction_template には {_COLOUR_SLOT} が必要です: {instruction_template!r}")
+    n_trials, base_seed, colours = validate_trial_plan(n_trials, base_seed, colours, instruction_template)
     records: list[TrialRecord] = []
     for i in range(n_trials):
         seed, colour = base_seed + i, colours[i % len(colours)]
