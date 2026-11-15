@@ -195,7 +195,7 @@ TASK-0024 → TASK-0025
 - [x] [TASK-0028: 実行動画の作成(情報の重ね表示)](TASK-0028.md) - 1.5h (TDD) 🔵 ← T-28 ✅ 完了 (2026-11-09)
 - [x] [TASK-0029: プロバイダ別の評価と比較表](TASK-0029.md) - 2h (DIRECT) 🔵 ← T-29 ✅ 完了 (2026-11-15。openai 80.0% で AC-01 を満たした。Anthropic・Gemini は未評価)
 - [x] [TASK-0030: テストの整理、カバレッジ、CI](TASK-0030.md) - 1.5h (DIRECT) 🔵 ← T-30 ✅ 完了 (2026-11-15。GitHub Actions 成功を確認)
-- [ ] [TASK-0031: README と再現手順(Docker は任意)](TASK-0031.md) - 1.5h (DIRECT) 🔵 ← T-31
+- [x] [TASK-0031: README と再現手順(Docker は任意)](TASK-0031.md) - 1.5h (DIRECT) 🔵 ← T-31 ✅ 完了 (2026-11-15。新しい clone で再現を確認)
 
 ### 依存関係
 
