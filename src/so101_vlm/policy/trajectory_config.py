@@ -12,9 +12,9 @@ from pathlib import Path
 
 import yaml
 
-from so101_vlm.eval.validation import require_exact_keys, require_number
 from so101_vlm.safety._validation import require_fraction, require_positive, to_float_tuple
 from so101_vlm.safety.config import DEFAULT_MOTION_CONFIG_PATH
+from so101_vlm.validation import require_exact_keys, require_number
 
 _N_AXES = 3
 _TRAJECTORY_KEYS = frozenset(

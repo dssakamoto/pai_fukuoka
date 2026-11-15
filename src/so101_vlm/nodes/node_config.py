@@ -10,8 +10,8 @@ from pathlib import Path
 
 import yaml
 
-from so101_vlm.eval.validation import require_exact_keys, require_int, require_number
 from so101_vlm.robot.model_paths import REPO_ROOT
+from so101_vlm.validation import require_exact_keys, require_int, require_number
 
 SIM_CONFIG_PATH = REPO_ROOT / "configs" / "sim.yaml"
 REAL_CONFIG_PATH = REPO_ROOT / "configs" / "real.yaml"

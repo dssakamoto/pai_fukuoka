@@ -18,9 +18,9 @@ import mujoco
 import numpy as np
 import yaml
 
-from so101_vlm.eval.validation import require_exact_keys, require_int, require_number
 from so101_vlm.perception.projection import Camera, mujoco_cam_to_opencv, validate_T_base_cam
 from so101_vlm.robot.model_paths import REPO_ROOT
+from so101_vlm.validation import require_exact_keys, require_int, require_number
 
 # 【定数定義】: 既定の保存先 (パッケージ位置から解決) 🔵
 DEFAULT_CALIBRATION_PATH = REPO_ROOT / "configs" / "calibration.yaml"

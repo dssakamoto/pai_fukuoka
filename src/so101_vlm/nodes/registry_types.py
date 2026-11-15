@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 
 from so101_vlm.eval.fixed_pick import COLOUR_TO_BODY
-from so101_vlm.eval.validation import require_int
+from so101_vlm.validation import require_int
 
 
 @dataclass(frozen=True)

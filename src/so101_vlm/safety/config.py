@@ -10,10 +10,10 @@ from pathlib import Path
 
 import yaml
 
-from so101_vlm.eval.validation import require_exact_keys
 from so101_vlm.robot.base import N_JOINTS
 from so101_vlm.robot.model_paths import REPO_ROOT
 from so101_vlm.safety._validation import require_fraction, require_positive, to_float_tuple
+from so101_vlm.validation import require_exact_keys
 
 # 【定数定義】: 既定の設定ファイルのパス (パッケージ位置から解決) 🔵
 DEFAULT_MOTION_CONFIG_PATH = REPO_ROOT / "configs" / "motion.yaml"

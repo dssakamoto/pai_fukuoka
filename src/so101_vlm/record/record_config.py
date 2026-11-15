@@ -8,8 +8,8 @@ from pathlib import Path
 
 import yaml
 
-from so101_vlm.eval.validation import require_exact_keys, require_int
 from so101_vlm.robot.model_paths import REPO_ROOT
+from so101_vlm.validation import require_exact_keys, require_int
 
 DEFAULT_RECORD_CONFIG_PATH = REPO_ROOT / "configs" / "record.yaml"
 _KEYS = frozenset({"fps", "robot_type", "camera", "use_videos", "repo_id", "image_writer_threads"})

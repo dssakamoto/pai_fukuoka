@@ -11,9 +11,9 @@ from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
 import numpy as np
 
-from so101_vlm.eval.validation import require_number
 from so101_vlm.robot.base import N_JOINTS, RobotState
 from so101_vlm.safety._validation import as_vector
+from so101_vlm.validation import require_number
 
 if TYPE_CHECKING:
     from so101_vlm.policy.trajectory import JointTrajectory

@@ -6,7 +6,7 @@
 
 import numpy as np
 
-from so101_vlm.eval.validation import require_number
+from so101_vlm.validation import require_number
 
 
 def as_vector(
