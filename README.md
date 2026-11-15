@@ -137,3 +137,34 @@ uv run python scripts/render_video.py --provider oracle --trials 10 --speed 2 --
 - 動かなかった試行(VLM・知覚・計画の失敗)は、指示・検出・判定の静止画のクリップになる。
 - 日本語フォント(Yu Gothic など)があれば日本語、無ければ英語の表示。`--font` または環境変数 `SO101_VIDEO_FONT` で指定できる。
 - 描画が遅い環境では、1 試行あたり約 20 秒かかる。既存の `--out` は `--overwrite` なしでは上書きしない。
+
+## プロバイダ別の評価と比較表(TASK-0029)
+
+同じシード・色の並び・指示で各プロバイダを評価し、成功率と検出誤差(mm)を 1 つの表にする(AC-01、AC-04、AC-05)。
+
+```bash
+# anthropic / openai / gemini を 20 試行ずつ + 参考として oracle。表は docs/notes/provider-comparison.md にも保存
+uv run python scripts/compare_providers.py --trials 20 --seed 0 --notes docs/notes/provider-comparison.md
+```
+
+- API キーのないプロバイダ、クライアントが未実装のプロバイダは「**未評価**」(評価していない。成功率 0% ではない)と理由を表に残す。評価の途中で想定外の例外が出たら「中断」にして、他のプロバイダは続ける。
+- 検出誤差 = VLM の出力から算出した 3 次元位置と、シミュレーション上の真のブロック中心の距離 [mm](平均と中央値)。推定が出なかった試行は含めない。
+- 「参考」の行(oracle)は、真の配置から作った枠での結果で、AC-01 の判定には含めない。
+- Gemma(ollama)は、メモリで止まる懸念があるため既定では評価しない。`--providers anthropic,openai,gemini,ollama` と明示したときだけ。
+- 出力: `results/<run-id>/comparison.md`・`comparison.json`、プロバイダごとの `trials.csv`・`summary.json`。VLM の呼び出しはキャッシュされる(同じ画像・指示で API を呼び直さない)。
+- `--require-target` を付けると、基準(既定 70%)を満たしたプロバイダがないとき終了コード 1。
+
+## VLM のクライアント(TASK-0019〜0021)
+
+Anthropic(Claude)/ OpenAI / Gemini のクライアントを実装した。`configs/vlm.yaml` の `provider:` で切り替える。
+
+```bash
+cp .env.example .env     # ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY を書く(.env は git 管理外)
+uv run python scripts/run_eval.py --provider anthropic --trials 20 --seed 0
+uv run python scripts/compare_providers.py --notes docs/notes/provider-comparison.md
+uv run pytest tests/vlm/test_live_apis.py -m api   # 実 API で、sim の画像から赤いブロックを検出できるか(キーがなければスキップ)
+```
+
+- スクリプトは `.env` を自動で読む(シェルで設定済みの環境変数が優先。値は表示しない)。キーが無い・空のときは、起動時に環境変数名つきのエラー。
+- 通常のテストは、本物の SDK を**偽の API サーバ**(ローカル)に向けて動かす。キーもネットワークも要らない。
+- 実 API は料金がかかる。VLM の応答はキャッシュされる(同じ画像・指示で呼び直さない)。OpenAI のクレジット切れ(429 `insufficient_quota`)は再試行しない。

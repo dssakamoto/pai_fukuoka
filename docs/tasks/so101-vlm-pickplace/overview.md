@@ -152,9 +152,9 @@ TASK-0005 → TASK-0015
 - [x] [TASK-0016: VLM 各社の仕様確認と設定ファイル](TASK-0016.md) - 1.5h (DIRECT) 🔵 ← T-16 ✅ 完了 (2026-11-06)
 - [x] [TASK-0017: VLM の出力スキーマと検証](TASK-0017.md) - 1.5h (TDD) 🔵 ← T-17 ✅ 完了 (2026-11-06)
 - [x] [TASK-0018: VlmClient の共通部分(再試行・タイムアウト・キャッシュ)](TASK-0018.md) - 2h (TDD) 🔵 ← T-18 ✅ 完了 (2026-11-06)
-- [ ] [TASK-0019: AnthropicClient](TASK-0019.md) - 1.5h (TDD) 🔵 ← T-19
-- [ ] [TASK-0020: OpenAIClient](TASK-0020.md) - 1.5h (TDD) 🔵 ← T-20
-- [ ] [TASK-0021: GeminiClient](TASK-0021.md) - 1.5h (TDD) 🔵 ← T-21
+- [ ] [TASK-0019: AnthropicClient](TASK-0019.md) - 1.5h (TDD) 🔵 ← T-19 🟡 実装・テスト完了。実 API での検出の確認はキー待ち
+- [ ] [TASK-0020: OpenAIClient](TASK-0020.md) - 1.5h (TDD) 🔵 ← T-20 🟡 実装・テスト完了。実 API での検出の確認はキー待ち
+- [ ] [TASK-0021: GeminiClient](TASK-0021.md) - 1.5h (TDD) 🔵 ← T-21 🟡 実装・テスト完了。実 API での検出の確認はキー待ち
 - [ ] [TASK-0022: OllamaClient(Gemma)](TASK-0022.md) - 2h (TDD) 🔵 ← T-22
 - [x] [TASK-0023: 検出結果の可視化](TASK-0023.md) - 1h (TDD) 🟡 ← T-23 ✅ 完了 (2026-11-06)
 - [x] [TASK-0024: VLM → 座標変換 → IK の結合](TASK-0024.md) - 2h (TDD) 🔵 ← T-24 ✅ 完了 (2026-11-06)
@@ -193,7 +193,7 @@ TASK-0024 → TASK-0025
 - [x] [TASK-0026: 複数試行の自動実行と結果の集計](TASK-0026.md) - 2h (TDD) 🔵 ← T-26 ✅ 完了 (2026-11-07)
 - [x] [TASK-0027: LeRobot 形式での記録](TASK-0027.md) - 2h (TDD) 🔵 ← T-27 ✅ 完了 (2026-11-08)
 - [x] [TASK-0028: 実行動画の作成(情報の重ね表示)](TASK-0028.md) - 1.5h (TDD) 🔵 ← T-28 ✅ 完了 (2026-11-09)
-- [ ] [TASK-0029: プロバイダ別の評価と比較表](TASK-0029.md) - 2h (DIRECT) 🔵 ← T-29
+- [ ] [TASK-0029: プロバイダ別の評価と比較表](TASK-0029.md) - 2h (DIRECT) 🔵 ← T-29 🟡 比較表の仕組みは完了。実 API の評価(AC-01)は TASK-0019〜0022 とキー待ち
 - [ ] [TASK-0030: テストの整理、カバレッジ、CI](TASK-0030.md) - 1.5h (DIRECT) 🔵 ← T-30 🟡 カバレッジ・CI 設定は完了。GitHub Actions 上での成功は push 後に確認
 - [ ] [TASK-0031: README と再現手順(Docker は任意)](TASK-0031.md) - 1.5h (DIRECT) 🔵 ← T-31
 

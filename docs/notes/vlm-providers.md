@@ -77,3 +77,25 @@
   原因: 斜めのカメラでは、枠の中心画素の深度が上面ではなく手前の側面に当たり、「表面の点 - 半辺」の補正が合わない。
 - 改善案 (未実施): 枠の中心画素の光線と、ブロック中心の高さの水平面との交点を使う (深度に依らない)。
   実 VLM の枠はもっとゆるいので、AC-05 の検出誤差の評価前に再検討する。
+
+
+## 実装メモ (TASK-0019〜0021、2026-11-15)
+
+SDK のバージョン: anthropic 2.8.0 / openai 3.51.0 / google-genai 3.3.0(`pyproject.toml`、`uv.lock`)。API は推測せず、インストールした SDK を調べ、
+本物の SDK を偽サーバ(各社の応答の形を返す、`tests/vlm/fake_api.py`)に向けて実測した。
+
+| | Anthropic | OpenAI | Gemini |
+|---|---|---|---|
+| 呼び出し | `messages.create` + `output_config.format`(json_schema) | `responses.create` + `text.format`(json_schema, strict) | `models.generate_content` + `response_json_schema` |
+| 画像 | base64 の image ブロックを先に | data URL の `input_image`(`detail: original`) | `Part.from_bytes`(inline) |
+| キーのヘッダ | `authorization: Bearer`(2.x の SDK。旧来の `x-api-key` ではない) | `authorization: Bearer` | `x-goog-api-key` |
+| タイムアウト・接続エラー | `APITimeoutError`(`APIConnectionError` の子) | 同左 | **`httpx2.ReadTimeout` / `ConnectTimeout` の生の例外**(google.genai.errors ではない) |
+| レート制限 / 障害 | `RateLimitError` / `InternalServerError` | 同左 | `ClientError`(code 429)/ `ServerError` |
+| 拒否・途中切れ | `stop_reason` が `refusal` / `max_tokens` | `refusal` の part / `status: incomplete` | `prompt_feedback.block_reason` / `finish_reason`(`SAFETY` / `MAX_TOKENS` ...) |
+| 画像の座標 | 絶対ピクセル | 絶対ピクセル(🔴 実測が必要) | 0〜1000 の `[ymin, xmin, ymax, xmax]` |
+
+- **再試行は `BaseVlmClient` が一括して管理する。** 各 SDK の自動再試行は切る(Anthropic / OpenAI は `max_retries=0`、Gemini は `HttpRetryOptions(attempts=1)`)。切らないと、503 が `最大 3 回` のつもりで 9 回(3 x SDK の 3)呼ばれる。テストで、リクエスト数がちょうど 3 になることを確認している。
+- **一時的な失敗**: タイムアウト・接続エラー・408・409・429・5xx。それ以外(400/401/403/404)は再試行せず、SDK の例外のまま上に出す(キーはメッセージに含まれない)。
+- **OpenAI の 429 には 2 種類ある(実 API で観測)**: レート制限(待てば直る)と、クレジット切れ(`insufficient_quota`。待っても直らない)。後者は再試行しない。
+- 応答が使えない場合(拒否・途中切れ・ブロック・JSON でない・対象なし)は `PlanError`。ロボットは動かない。
+- 実 API のテスト: `tests/vlm/test_live_apis.py`(`-m api`)。キーがなければスキップ。キーは `.env`(`so101_vlm.env.load_dotenv`)からも読む。

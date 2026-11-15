@@ -33,6 +33,7 @@ from so101_vlm.eval.trial import run_trial
 from so101_vlm.perception.calibration import load_calibration
 from so101_vlm.record.lerobot_writer import LeRobotWriter
 from so101_vlm.record.sim_episode import record_trial
+from so101_vlm.env import load_dotenv
 from so101_vlm.robot.model_paths import REPO_ROOT
 from so101_vlm.vlm import MissingApiKeyError, create_client
 from so101_vlm.vlm.config import load_vlm_config
@@ -80,6 +81,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--min-success-rate", type=float, default=None, help="下回ったら終了コード 1 (例: 0.7)")
     args = parser.parse_args(argv)
+    load_dotenv()  # API キーを .env から (既存の環境変数は上書きしない。値は表示しない)
 
     run_id = args.run_id or f"{datetime.now():%Y%m%d-%H%M%S}-{args.provider}"
     if "/" in run_id or "\\" in run_id or run_id in {"", ".", ".."}:

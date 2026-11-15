@@ -12,6 +12,11 @@ cache:
   enabled: true
   dir: media/vlm_cache   # キー = (画像ハッシュ, 指示, プロバイダ, モデル)。media/ は git 管理外
 
+# プロバイダごとの任意のオプション (書かなければ既定。実装は src/so101_vlm/vlm/<名前>_client.py):
+#   base_url          API の接続先 (プロキシ・テスト用)。anthropic / openai / gemini
+#   max_tokens        anthropic の出力上限 (既定 4096。思考のぶんも含む)。effort: low|medium|high で思考の深さ
+#   image_detail      openai の画像の解像度 (既定 original = 縮小せず、座標のずれを避ける。非対応のモデルは high)
+#   max_output_tokens openai / gemini の出力上限 (既定 4096)
 providers:
   anthropic:
     model: claude-haiku-5-5

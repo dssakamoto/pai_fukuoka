@@ -5,10 +5,13 @@ description = "SO-101 を VLM で動かす pick-and-place（MuJoCo シミュレ�
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "anthropic>=2.8",
+    "google-genai>=3.3",
     "imageio>=2.38.1",
     "imageio-ffmpeg>=0.6.0",
     "mujoco",
     "numpy",
+    "openai>=3.51",
     "pillow",
     "pyyaml",
 ]

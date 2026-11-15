@@ -1,9 +1,10 @@
 """VLM クライアント (TASK-0016〜0022)。create_client で設定のプロバイダから生成する。
 
-プロバイダ実装 (TASK-0019〜0022) は register_provider でファクトリを登録する。
+プロバイダ実装は register_provider でファクトリを登録する (anthropic / openai / gemini は、このファイルの末尾で登録済み。Ollama は TASK-0022)。
 ファクトリは (ProviderConfig, api_key | None) -> トランスポート を返す (base.py 参照)。
 """
 
+import importlib
 import os
 from collections.abc import Callable, Mapping
 from pathlib import Path
@@ -66,3 +67,19 @@ def create_client(
         max_retries=config.max_retries,
         **kwargs,
     )
+
+
+# 🔵 Intent: 実装済みの 3 社を、既定で登録する。SDK は使うときに import する (起動を軽くし、未導入でも他のプロバイダは使える)。
+def _builtin(provider: str) -> Factory:
+    def factory(pc: ProviderConfig, key: str | None) -> Transport:
+        try:
+            module = importlib.import_module(f"so101_vlm.vlm.{provider}_client")
+        except ImportError as exc:
+            raise ImportError(f"{provider} の SDK が入っていません。`uv sync` を実行してください: {exc}") from exc
+        return module.make_transport(pc, key)
+
+    return factory
+
+
+for _provider in ("anthropic", "openai", "gemini"):
+    register_provider(_provider, _builtin(_provider))

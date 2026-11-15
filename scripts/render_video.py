@@ -30,6 +30,7 @@ from so101_vlm.eval.scene_spec import SCENE_SPEC
 from so101_vlm.eval.video import compose_summary, make_style
 from so101_vlm.eval.video_clip import DEFAULT_FPS, VideoWriter, clip_trial, summary_lines
 from so101_vlm.perception.calibration import load_calibration
+from so101_vlm.env import load_dotenv
 from so101_vlm.robot.model_paths import REPO_ROOT
 from so101_vlm.vlm import MissingApiKeyError, create_client
 from so101_vlm.vlm.config import load_vlm_config
@@ -65,6 +66,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-summary", action="store_true", help="最後の成功率のカードをつけない")
     parser.add_argument("--overwrite", action="store_true", help="既存の --out を上書きする")
     args = parser.parse_args(argv)
+    load_dotenv()  # API キーを .env から (既存の環境変数は上書きしない。値は表示しない)
 
     if args.out.exists() and not args.overwrite:
         print(f"{args.out} が既にあります。別の --out か --overwrite を指定してください", file=sys.stderr)

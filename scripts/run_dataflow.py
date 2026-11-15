@@ -19,6 +19,7 @@ from pathlib import Path
 from so101_vlm.nodes.dataflow import DATAFLOW_TEMPLATE_PATH, find_dora, render_dataflow
 from so101_vlm.nodes.node_config import SIM_CONFIG_PATH, load_node_config
 from so101_vlm.nodes.registry_types import TaskSpec
+from so101_vlm.env import load_dotenv
 from so101_vlm.robot.model_paths import REPO_ROOT
 
 
@@ -31,6 +32,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out-dir", type=Path, default=None, help="既定は設定の output_dir")
     parser.add_argument("--timeout", type=float, default=None, help="dora run を打ち切る秒数 (既定は設定の timeout_s)")
     args = parser.parse_args(argv)
+    load_dotenv()  # API キーを .env から (既存の環境変数は上書きしない。値は表示しない)
 
     try:
         config = load_node_config(args.config)
