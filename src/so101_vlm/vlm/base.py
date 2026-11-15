@@ -16,7 +16,7 @@ from so101_vlm.vlm.cache import VlmCache, make_key
 from so101_vlm.vlm.schema import PlanError, PlanResult, parse_plan
 
 # 🟡 プロンプトを変えたらキャッシュを無効にするための版数
-PROMPT_VERSION = "1"
+PROMPT_VERSION = "2"  # 2: 色の厳密な一致 (近い色で代用しない) を明記 (AC-02)
 # 🟡 再試行の待ち [s]: 1, 2, 4, ... (指数バックオフ、設計書 4.3)
 BACKOFF_BASE_S = 1.0
 
@@ -58,11 +58,14 @@ def build_prompt(instruction: str, coord_format: str, width: int, height: int) -
         "You control a robot arm that does pick-and-place. Look at the image and follow the "
         "instruction. Find the object to pick up and the place to put it.\n"
         f"Instruction: {instruction}\n\n"
+        "The object to pick must match the description in the instruction exactly, including its colour. "
+        "Do not substitute a similar object: for example, do not treat a blue block as a purple one. "
+        "If no object matches exactly, the object is not found.\n\n"
         f"{fmt}\n\n"
         "Reply with JSON only (no explanation, no code fence) in this form:\n"
         '{"pick": {"label": "<short name>", "box": [n, n, n, n], "confidence": <0 to 1>}, '
         '"place": {"label": "<short name>", "box": [n, n, n, n], "confidence": <0 to 1>}}\n'
-        "If the object to pick does not exist in the image, reply with "
+        "If the object to pick is not found in the image, do not guess; reply with "
         '{"pick": null, "place": null, "error": "<why>"} instead.'
     )
 
@@ -101,6 +104,12 @@ class BaseVlmClient:
         self._timeout_s = timeout_s
         self._max_retries = max_retries
         self._sleep = sleep
+
+    @property
+    def usage(self) -> dict[str, int]:
+        """【機能概要】: API を呼んだ回数とトークン数 (入力・出力) の累計のコピー。キャッシュから返した分は数えない。記録を持たないトランスポートは 0 🔵"""
+        recorded = getattr(self._transport, "usage", None)
+        return dict(recorded) if recorded else {"calls": 0, "input_tokens": 0, "output_tokens": 0}
 
     def _call_with_retry(self, png: bytes, prompt: str) -> str:
         attempts = self._max_retries + 1

@@ -168,3 +168,25 @@ uv run pytest tests/vlm/test_live_apis.py -m api   # 実 API で、sim の画像
 - スクリプトは `.env` を自動で読む(シェルで設定済みの環境変数が優先。値は表示しない)。キーが無い・空のときは、起動時に環境変数名つきのエラー。
 - 通常のテストは、本物の SDK を**偽の API サーバ**(ローカル)に向けて動かす。キーもネットワークも要らない。
 - 実 API は料金がかかる。VLM の応答はキャッシュされる(同じ画像・指示で呼び直さない)。OpenAI のクレジット切れ(429 `insufficient_quota`)は再試行しない。
+
+## 1 試行の実行と、存在しない色(AC-02)
+
+```bash
+# 1 試行を、指示つきで。指示 -> VLM -> 検出 -> 推定位置 -> 実行 -> 判定 (失敗なら種類と理由) を表示する
+uv run python scripts/run_trial.py --provider openai --seed 2 --instruction "put the red block into the box"
+# 存在しない色: VLM が「見つからない」と答え、ロボットは動かず、理由が表示される(終了コード 1)
+uv run python scripts/run_trial.py --provider openai --seed 2 --instruction "put the purple block into the box"
+```
+
+```
+指示: put the purple block into the box
+VLM: openai / gpt-6-luna
+検出: なし
+実行: ロボットは動かしていません (動作の前に拒否)
+判定: 失敗 (vlm_failure): VLM の応答が使えない (対象が見つからない・形式が不正・呼び出しの失敗)
+理由: pick がありません: No purple block is visible in the image.
+```
+
+- VLM・知覚・計画の失敗は、ロボットを動かす前に拒否する。実行後の失敗(把持・配置)は、判定の条件と数値を理由に出す。
+- `--colour` は成功を判定する対象(シミュレーションの真値)で、VLM には渡さない。
+- 実 VLM は、似た色で代用しやすい(最初のプロンプトでは、purple の指示で青いブロックを検出した)。プロンプトで色の厳密な一致を求めている。詳細は [docs/notes/vlm-providers.md](docs/notes/vlm-providers.md)。

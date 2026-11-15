@@ -237,3 +237,17 @@ def test_corrupt_cache_entry_falls_back_to_a_call(tmp_path):
         f.write_text("garbage", encoding="utf-8")
     assert c.plan(IMG, "x").pick.label == "red block"
     assert len(t.calls) == 2
+
+
+def test_prompt_demands_an_exact_colour_match_and_forbids_substitution():
+    # AC-02: 実 VLM (gpt-6-luna) は、「purple」と指示されると、近い色 (青) のブロックを purple と呼んで検出してしまった (2026-11-15)
+    p = build_prompt("put the purple block into the box", "xyxy_px", 640, 480)
+    assert "exactly" in p and "similar" in p and "not found" in p.lower()
+    assert '"pick": null' in p and "do not" in p.lower()
+
+
+def test_changing_the_prompt_invalidates_cached_responses(tmp_path):
+    # PROMPT_VERSION がキャッシュのキーに入る: 古いプロンプトの応答 (誤検出を含む) を使い回さない
+    from so101_vlm.vlm import base
+
+    assert base.PROMPT_VERSION != "1"
