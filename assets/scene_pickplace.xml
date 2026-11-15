@@ -12,7 +12,7 @@
   ブロックの高さ(静止時の z)は 0.015 m。
 
   【数値の単一の情報源】箱・ブロック・カメラ名などの値は
-  src/so101_vlm/eval/scene_spec.py と一致させる(tests/test_scene.py が照合する)。
+  src/so101_vlm/eval/geometry.py が XML から読む(tests/test_scene.py が値を固定して照合する)。
 -->
 <mujoco model="scene_pickplace">
   <include file="so101/so101_new_calib.xml"/>

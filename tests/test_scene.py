@@ -184,3 +184,37 @@ def test_option_appears_once_between_include_and_compiler():
     # 【結果検証】: コメントには <option と書かない前提で、ちょうど 1 回
     assert text.count("<option") == 1  # 【確認内容】: 重複なし
     assert text.index("<include") < text.index("<option") < text.index("<compiler")  # 【確認内容】: 位置
+
+
+# ---------------------------------------------------------------------------
+# SGT-003: XML の数値をリテラルで固定する回帰テスト(SPEC が XML から導かれても XML の変更を検知する)
+# ---------------------------------------------------------------------------
+from so101_vlm.eval.geometry import SceneGeometry  # noqa: E402
+
+_XML_LITERALS = {
+    "block_names": ("block_red", "block_blue", "block_green"),
+    "block_half_size": 0.015,
+    "block_rest_z": 0.015,
+    "box_inner_half_size": 0.04,
+    "box_wall_thickness": 0.005,
+    "box_floor_top_z": 0.005,
+    "box_rim_z": 0.04,
+    "camera_name": "cam_top",
+    "image_width": 640,
+    "image_height": 480,
+}
+
+
+@pytest.mark.parametrize("field", sorted(_XML_LITERALS))
+def test_xml_literals_match_geometry_and_spec(field):
+    """TC-SGT003-01 XML の寸法が固定値と完全一致し、SceneGeometry と SCENE_SPEC に同じ値が出る 🔵"""
+    # 【確認内容】: XML から読んだ値と SPEC の同名フィールドが、リテラルと == で一致する
+    expected = _XML_LITERALS[field]
+    assert getattr(SceneGeometry.from_xml(), field) == expected
+    assert getattr(SPEC, field) == expected
+
+
+def test_xml_box_center_literal_matches_geometry_and_spec():
+    """TC-SGT003-02 箱の中心が (0.20, 0.19) 🔵"""
+    assert SceneGeometry.from_xml().box_default_xy == (0.20, 0.19)  # 【確認内容】: XML から
+    assert SPEC.box_center_xy == (0.20, 0.19)  # 【確認内容】: SPEC 側

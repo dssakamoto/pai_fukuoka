@@ -1,30 +1,35 @@
-"""ピック&プレースシーンの寸法・名前の単一の情報源 (TASK-0005)。
+"""ピック&プレースシーンの寸法・名前の情報源 (TASK-0005)。
 
-assets/scene_pickplace.xml の値はここと一致させる(tests/test_scene.py が照合する)。
+寸法は assets/scene_pickplace.xml から導く(SGT-003: eval/geometry.py が XML を読む)。
+tests/test_scene.py が XML の値をリテラルで固定して照合する。
 成功判定 (TASK-0015)・初期配置 (TASK-0006)・画像→3 次元変換 (TASK-0008) が使う。単位は m。
 """
 
 from dataclasses import dataclass
 
+from so101_vlm.eval.geometry import BOX_BODY_NAME, get_geometry
+
+_G = get_geometry()
+
 
 @dataclass(frozen=True)
 class SceneSpec:
-    """【機能概要】: シーンの定数。🟡(寸法は把持の様子を見て調整する前提)"""
+    """【機能概要】: シーンの定数。XML から導く(work_area は移行期間のみリテラル)🟡"""
 
-    block_names: tuple[str, ...] = ("block_red", "block_blue", "block_green")
-    block_half_size: float = 0.015  # 一辺 3 cm
-    block_rest_z: float = 0.015  # 床の上で静止したときのブロック中心の高さ
-    box_body_name: str = "box"
-    box_center_xy: tuple[float, float] = (0.20, 0.19)  # ワールド座標
-    box_inner_half_size: float = 0.04  # 内寸 8 x 8 cm の半分
-    box_wall_thickness: float = 0.005
-    box_floor_top_z: float = 0.005  # 底板の上面
-    box_rim_z: float = 0.04  # 壁の上端(縁の高さ)
-    work_area_x: tuple[float, float] = (0.15, 0.35)  # 20 cm 四方
+    block_names: tuple[str, ...] = _G.block_names
+    block_half_size: float = _G.block_half_size
+    block_rest_z: float = _G.block_rest_z  # 床の上で静止したときのブロック中心の高さ
+    box_body_name: str = BOX_BODY_NAME
+    box_center_xy: tuple[float, float] = _G.box_default_xy  # ワールド座標(SGT-013 で削除予定)
+    box_inner_half_size: float = _G.box_inner_half_size
+    box_wall_thickness: float = _G.box_wall_thickness
+    box_floor_top_z: float = _G.box_floor_top_z  # 底板の上面
+    box_rim_z: float = _G.box_rim_z  # 壁の上端(縁の高さ)
+    work_area_x: tuple[float, float] = (0.15, 0.35)  # 20 cm 四方(SGT-013 で削除予定。XML に無い)
     work_area_y: tuple[float, float] = (-0.10, 0.10)
-    camera_name: str = "cam_top"
-    image_width: int = 640
-    image_height: int = 480
+    camera_name: str = _G.camera_name
+    image_width: int = _G.image_width
+    image_height: int = _G.image_height
 
 
 SCENE_SPEC = SceneSpec()
