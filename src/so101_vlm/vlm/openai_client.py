@@ -11,7 +11,7 @@ base_url を設定で変えられる (オプション。OpenAI 互換のサー�
 from so101_vlm.vlm.base import Transport, VlmTransientError
 from so101_vlm.vlm.config import ProviderConfig
 from so101_vlm.vlm.schema import PlanError
-from so101_vlm.vlm.transport_common import DEFAULT_MAX_TOKENS, PLAN_SCHEMA, is_transient_status, png_to_b64
+from so101_vlm.vlm.transport_common import add_usage, new_usage, DEFAULT_MAX_TOKENS, PLAN_SCHEMA, is_transient_status, png_to_b64
 
 
 def make_transport(pc: ProviderConfig, api_key: str | None) -> Transport:
@@ -22,6 +22,8 @@ def make_transport(pc: ProviderConfig, api_key: str | None) -> Transport:
     detail = pc.options.get("image_detail", "original")
     max_output_tokens = int(pc.options.get("max_output_tokens", DEFAULT_MAX_TOKENS))
     text_format = {"format": {"type": "json_schema", "name": "pick_place", "schema": PLAN_SCHEMA, "strict": True}}
+
+    usage = new_usage()
 
     def call(png: bytes, prompt: str, timeout_s: float) -> str:
         content = [
@@ -44,6 +46,7 @@ def make_transport(pc: ProviderConfig, api_key: str | None) -> Transport:
             if is_transient_status(exc.status_code):
                 raise VlmTransientError(f"{type(exc).__name__}: {exc}") from exc
             raise
+        add_usage(usage, getattr(response.usage, 'input_tokens', None), getattr(response.usage, 'output_tokens', None))  # 課金は、応答が使えなくても発生する
         for item in response.output or []:
             if getattr(item, "type", None) == "message":
                 for part in item.content:
@@ -53,4 +56,5 @@ def make_transport(pc: ProviderConfig, api_key: str | None) -> Transport:
             raise PlanError(f"応答が途中で終わりました: {getattr(response, 'incomplete_details', None)}")
         return response.output_text or ""
 
+    call.usage = usage  # type: ignore[attr-defined]  # BaseVlmClient.usage が読む
     return call

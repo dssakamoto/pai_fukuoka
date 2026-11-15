@@ -43,7 +43,8 @@ class ProviderResult:
     """【機能概要】: 1 プロバイダの評価結果。status は evaluated / not_evaluated / aborted 🔵
 
     reason: 未評価・中断の理由、records / summary: 評価した試行 (未評価は空 / None、中断は途中まで)、
-    mean_/median_pick_error_mm: 推定のある試行だけの検出誤差、reference: 参考の行 (AC-01 の判定に含めない)。
+    mean_/median_pick_error_mm: 推定のある試行だけの検出誤差、reference: 参考の行 (AC-01 の判定に含めない)、
+    usage: API の呼び出し回数と入力・出力のトークン数の累計 (クライアントが記録を持つときだけ。キャッシュから返した分は含まない)。
     """
 
     provider: str
@@ -56,6 +57,7 @@ class ProviderResult:
     median_pick_error_mm: float | None
     mean_vlm_time_s: float | None
     reference: bool
+    usage: dict[str, int] | None = None
 
     def meets_target(self, target: float) -> bool:
         """【機能概要】: 評価済みで、成功率が target 以上 (ちょうどを含む)。未評価・中断は常に False 🔵"""
@@ -69,13 +71,14 @@ def _mean(values: list[float]) -> float | None:
     return sum(values) / len(values) if values else None
 
 
-def _result(name, status, reason, records, model, reference) -> ProviderResult:
+def _result(name, status, reason, records, model, reference, usage=None) -> ProviderResult:
     errors = [r.pick_error_mm for r in records if r.pick_error_mm is not None]
     return ProviderResult(
         provider=name, model=records[0].model if records else model, status=status, reason=reason,
         records=tuple(records), summary=summarize(records) if records else None,
         mean_pick_error_mm=_mean(errors), median_pick_error_mm=statistics.median(errors) if errors else None,
         mean_vlm_time_s=_mean([r.vlm_time_s for r in records if r.vlm_time_s is not None]), reference=reference,
+        usage=usage,
     )  # fmt: skip
 
 
@@ -130,14 +133,18 @@ def evaluate_provider(
         if on_record is not None:
             on_record(name, done, total, record)
 
+    def metered_usage() -> dict[str, int] | None:
+        recorded = getattr(client_for(base_seed, colours[0]), "usage", None)  # 共有のクライアントなら、累計が読める
+        return dict(recorded) if recorded else None
+
     try:
         run_trials(
             n_trials, base_seed, client_for, colours=colours, instruction_template=instruction_template,
             trial_fn=trial_fn, on_record=collect, **trial_kwargs,
         )  # type: ignore[arg-type]
     except Exception as exc:  # noqa: BLE001  KeyboardInterrupt は BaseException なので通る
-        return _result(name, ABORTED, f"{type(exc).__name__}: {exc}", records, model_hint, reference)
-    return _result(name, EVALUATED, None, records, model_hint, reference)
+        return _result(name, ABORTED, f"{type(exc).__name__}: {exc}", records, model_hint, reference, metered_usage())
+    return _result(name, EVALUATED, None, records, model_hint, reference, metered_usage())
 
 
 def compare_providers(
@@ -187,6 +194,7 @@ def _row(r: ProviderResult) -> list[str]:
     else:
         cells += ["-"] * (3 + len(_GROUPS))
     cells.append(_num(r.mean_vlm_time_s, 2) if r.status == EVALUATED else "-")
+    cells.append(f"{r.usage['input_tokens']} / {r.usage['output_tokens']}" if r.usage else "-")
     return [_cell(c) for c in cells]
 
 
@@ -205,7 +213,7 @@ def format_markdown(
 ) -> str:
     """【機能概要】: 条件・比較表・未評価の理由・AC-01 の判定・検出誤差の定義を、Markdown の文字列にする 🔵"""
     header = ["プロバイダ", "モデル", "状態", "成功率", "検出誤差 平均 [mm]", "検出誤差 中央値 [mm]",
-              *(label for _, label in _GROUPS), "VLM 時間 平均 [s]"]  # fmt: skip
+              *(label for _, label in _GROUPS), "VLM 時間 平均 [s]", "トークン 入力 / 出力"]  # fmt: skip
     lines = [
         "# プロバイダ別の評価と比較表", "",
         "## 条件", "",
@@ -236,6 +244,7 @@ def format_markdown(
         "推定が出なかった試行 (VLM 失敗など) は平均・中央値に入れない。",
         "- 検出誤差には、枠が完全でも出る深度方式の偏り (約 6〜9 mm。斜めのカメラで枠の中心画素の深度が側面に当たる) を含む。",
         "- 参考 = oracle: 真の配置から作った枠 (実際の VLM ではない)。パイプラインの上限を見るための行。",
+        "- トークン = API を呼んだ試行の入力・出力トークンの累計 (キャッシュから返した分は含まない)。料金 = 入力 x 入力単価 + 出力 x 出力単価 (単価は各社の料金表)。",
         "- 未評価 = API キーがない、またはクライアント未実装。評価していない (成功率 0% ではない)。中断 = 評価の途中で想定外の例外。",
         "",
     ]
@@ -276,7 +285,7 @@ def write_report(
             "n_trials": None if s is None else s.n_trials, "n_success": None if s is None else s.n_success,
             "success_rate": None if s is None else s.success_rate,
             "mean_pick_error_mm": r.mean_pick_error_mm, "median_pick_error_mm": r.median_pick_error_mm,
-            "mean_vlm_time_s": r.mean_vlm_time_s, "by_failure": {} if s is None else s.by_failure,
+            "mean_vlm_time_s": r.mean_vlm_time_s, "usage": r.usage, "by_failure": {} if s is None else s.by_failure,
             "by_group": {} if s is None else s.by_group, "meets_target": r.meets_target(target),
         })  # fmt: skip
         if r.records:

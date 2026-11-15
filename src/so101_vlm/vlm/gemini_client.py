@@ -13,7 +13,7 @@ import importlib
 from so101_vlm.vlm.base import Transport, VlmTransientError
 from so101_vlm.vlm.config import ProviderConfig
 from so101_vlm.vlm.schema import PlanError
-from so101_vlm.vlm.transport_common import DEFAULT_MAX_TOKENS, PLAN_SCHEMA
+from so101_vlm.vlm.transport_common import add_usage, new_usage, DEFAULT_MAX_TOKENS, PLAN_SCHEMA
 
 _BLOCKING_FINISH = ("SAFETY", "RECITATION", "BLOCKLIST", "PROHIBITED_CONTENT", "SPII", "IMAGE_SAFETY", "IMAGE_PROHIBITED_CONTENT")
 
@@ -45,6 +45,8 @@ def make_transport(pc: ProviderConfig, api_key: str | None) -> Transport:
     max_output_tokens = int(pc.options.get("max_output_tokens", DEFAULT_MAX_TOKENS))
     transport_errors = _transport_error_types()
 
+    usage = new_usage()
+
     def call(png: bytes, prompt: str, timeout_s: float) -> str:
         config = types.GenerateContentConfig(
             response_mime_type="application/json", response_json_schema=PLAN_SCHEMA,
@@ -61,6 +63,8 @@ def make_transport(pc: ProviderConfig, api_key: str | None) -> Transport:
             if exc.code in (408, 429):
                 raise VlmTransientError(f"ClientError {exc.code}: {exc}") from exc
             raise
+        meta = getattr(response, 'usage_metadata', None)  # 課金は、応答が使えなくても発生する
+        add_usage(usage, getattr(meta, 'prompt_token_count', None), (getattr(meta, 'candidates_token_count', 0) or 0) + (getattr(meta, 'thoughts_token_count', 0) or 0))
         feedback = getattr(response, "prompt_feedback", None)
         if feedback is not None and getattr(feedback, "block_reason", None):
             raise PlanError(f"プロンプトがブロックされました: {_name(feedback.block_reason)}")
@@ -74,4 +78,5 @@ def make_transport(pc: ProviderConfig, api_key: str | None) -> Transport:
             raise PlanError(f"応答がブロックされました: {finish}")
         return response.text or ""
 
+    call.usage = usage  # type: ignore[attr-defined]  # BaseVlmClient.usage が読む
     return call

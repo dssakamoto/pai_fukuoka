@@ -42,3 +42,15 @@ def png_to_b64(png: bytes) -> str:
 def is_transient_status(code: int | None) -> bool:
     """【機能概要】: 再試行してよい HTTP ステータスか (408 タイムアウト、409 競合、429 レート制限、5xx) 🔵"""
     return code is not None and (code >= 500 or code in (408, 409, 429))
+
+
+def new_usage() -> dict[str, int]:
+    """【機能概要】: トークン使用量の記録 (API を呼んで応答が返った回数と、入力・出力のトークン数の合計) 🔵"""
+    return {"calls": 0, "input_tokens": 0, "output_tokens": 0}
+
+
+def add_usage(usage: dict[str, int], input_tokens: object, output_tokens: object) -> None:
+    """【機能概要】: 1 回の応答のトークン数を記録に足す。数でない (応答に無い) ものは 0 として扱う 🔵"""
+    usage["calls"] += 1
+    usage["input_tokens"] += input_tokens if isinstance(input_tokens, int) else 0
+    usage["output_tokens"] += output_tokens if isinstance(output_tokens, int) else 0

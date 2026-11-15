@@ -223,3 +223,33 @@ def test_failure_groups_are_counted_per_provider():
     results = compare_providers(["gemini"], client_factory_for=_factory_for(), trial_fn=_trial_fn(fail_seeds=(10, 11)), **ARGS)
     s = results[0].summary
     assert s.by_group == {FAILURE_GROUP[FailureKind.PLANNING_FAILURE].value: 2}
+
+
+# --- トークン使用量 (評価のコストを実測する) ---------------------------------------------------------------
+class _MeteredClient(_Client):
+    usage = {"calls": 4, "input_tokens": 2800, "output_tokens": 500}
+
+
+def _metered_factory_for(name):
+    shared = _MeteredClient(name, f"{name}-model")
+    return lambda seed, colour: shared
+
+
+def test_usage_is_taken_from_the_client_and_missing_usage_is_none():
+    r = evaluate_provider("gemini", client_factory_for=_metered_factory_for, trial_fn=_trial_fn(), **ARGS)
+    assert r.usage == {"calls": 4, "input_tokens": 2800, "output_tokens": 500}
+    assert evaluate_provider("gemini", client_factory_for=_factory_for(), trial_fn=_trial_fn(), **ARGS).usage is None
+    assert evaluate_provider("x", client_factory_for=_factory_for(missing=("x",)), trial_fn=_trial_fn(), **ARGS).usage is None
+
+
+def test_usage_appears_in_the_table_and_json(tmp_path):
+    results = compare_providers(["gemini", "openai"], client_factory_for=lambda n: _metered_factory_for(n) if n == "gemini" else _factory_for()(n), trial_fn=_trial_fn(), **ARGS)
+    text = format_markdown(results, target=0.7, **ARGS)
+    header = next(l for l in text.splitlines() if l.startswith("| プロバイダ"))
+    assert "トークン" in header
+    rows = {l.split("|")[1].strip(): l for l in text.splitlines() if l.startswith("| gemini") or l.startswith("| openai")}
+    assert "2800 / 500" in rows["gemini"] and "| - |" in rows["openai"]
+    assert rows["gemini"].count("|") == header.count("|")
+    paths = write_report(tmp_path / "r", results, target=0.7, **ARGS)
+    data = json.loads(paths["json"].read_text(encoding="utf-8"))
+    assert data["providers"][0]["usage"] == {"calls": 4, "input_tokens": 2800, "output_tokens": 500} and data["providers"][1]["usage"] is None

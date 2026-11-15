@@ -53,6 +53,7 @@ def openai_ok(text, *, status="completed", part=None):
             "content": [part or {"type": "output_text", "text": text, "annotations": []}],
         }],
         "parallel_tool_calls": True, "tool_choice": "auto", "tools": [],
+        "usage": {"input_tokens": 10, "output_tokens": 10, "total_tokens": 20},
     }  # fmt: skip
 
 
@@ -311,3 +312,27 @@ def test_config_options_are_not_required_for_the_real_endpoint():
         c = create_client(cfg, name, env={PROVIDERS[name]["key"]: "k"})
         assert c.provider == name
     assert dataclasses.is_dataclass(cfg)
+
+
+# --- トークン使用量の記録 (評価のコストを実測するため) --------------------------------------------------------------
+@pytest.mark.parametrize("name", NAMES)
+def test_usage_counts_only_calls_that_reached_the_api(fake_api, tmp_path, name):
+    fake_api.respond(_reply_ok(name))
+    c = _client(fake_api, name, tmp_path)
+    assert c.usage == {"calls": 0, "input_tokens": 0, "output_tokens": 0}
+    c.plan(IMG, INSTRUCTION)
+    c.plan(IMG, INSTRUCTION)  # キャッシュから: API を呼ばないので、数えない
+    expected = (1, 1) if name == "gemini" else (10, 10)
+    assert c.usage == {"calls": 1, "input_tokens": expected[0], "output_tokens": expected[1]}
+    c.plan(np.ones((480, 640, 3), np.uint8), INSTRUCTION)
+    assert c.usage["calls"] == 2 and c.usage["input_tokens"] == 2 * expected[0]
+
+
+def test_usage_is_a_copy_and_failed_calls_are_not_counted(fake_api, tmp_path):
+    fake_api.respond(Reply(503))
+    c = _client(fake_api, "anthropic", tmp_path)
+    with pytest.raises(VlmCallError):
+        c.plan(IMG, INSTRUCTION)
+    assert c.usage["calls"] == 0
+    c.usage["calls"] = 99
+    assert c.usage["calls"] == 0  # 外から書き換えても、内部の記録は変わらない
