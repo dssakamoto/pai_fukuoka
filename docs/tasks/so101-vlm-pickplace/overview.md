@@ -156,7 +156,7 @@ TASK-0005 → TASK-0015
 - [ ] [TASK-0019: AnthropicClient](TASK-0019.md) - 1.5h (TDD) 🔵 ← T-19 🟡 実装・テスト完了。実 API での検出の確認はキー待ち
 - [x] [TASK-0020: OpenAIClient](TASK-0020.md) - 1.5h (TDD) 🔵 ← T-20 ✅ 完了 (2026-11-15。実 API で検出を確認)
 - [ ] [TASK-0021: GeminiClient](TASK-0021.md) - 1.5h (TDD) 🔵 ← T-21 🟡 実装・テスト完了。実 API での検出の確認はキー待ち
-- [ ] [TASK-0022: OllamaClient(Gemma)](TASK-0022.md) - 2h (TDD) 🔵 ← T-22
+- [x] [TASK-0022: OllamaClient(Gemma)](TASK-0022.md) - 2h (TDD) 🔵 ← T-22 ✅ 完了 (2026-11-21。クライアント・偽サーバのテストまで。実 Ollama での検出は別PC待ち)
 - [x] [TASK-0023: 検出結果の可視化](TASK-0023.md) - 1h (TDD) 🟡 ← T-23 ✅ 完了 (2026-11-06)
 - [x] [TASK-0024: VLM → 座標変換 → IK の結合](TASK-0024.md) - 2h (TDD) 🔵 ← T-24 ✅ 完了 (2026-11-06)
 - [x] [TASK-0025: ノード分割とデータフローの配線](TASK-0025.md) - 2h (TDD) 🔵 ← T-25 ✅ 完了 (2026-11-07)

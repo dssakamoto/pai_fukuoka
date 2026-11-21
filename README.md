@@ -86,7 +86,7 @@ VLM: openai / gpt-6-luna
 ```
 
 - スクリプトは `.env` を自動で読む(シェルで設定済みの環境変数が優先。値は表示しない)。キーが無い・空のときは、起動時に環境変数名つきのエラーで止まる。
-- プロバイダは `configs/vlm.yaml` で選ぶ(`provider:`、モデル名、タイムアウト 30 秒、再試行 2 回、キャッシュ)。実装済み: Anthropic / OpenAI / Gemini。Gemma(Ollama)は未実装(TASK-0022)。
+- プロバイダは `configs/vlm.yaml` で選ぶ(`provider:`、モデル名、タイムアウト 30 秒、再試行 2 回、キャッシュ)。実装済み: Anthropic / OpenAI / Gemini / Gemma(Ollama、キー不要。`ollama pull gemma4:e4b` のあと `ollama serve`。起動していない・未取得のときは、比較表では「未評価」)。
 - **料金**: 1 回の呼び出し(640x480 の画像 + 指示)で、入力 約 700 / 出力 約 100〜500 トークン。20 試行の評価で約 $0.003(`gpt-6-luna`)。VLM の応答はキャッシュされ、同じ画像・指示では API を呼び直さない。
 - 実 VLM は、近い色で代用することがある(例: purple の指示で青いブロックを選ぶ)。プロンプトで色の厳密な一致を求めている。詳細は [docs/notes/vlm-providers.md](docs/notes/vlm-providers.md)。
 - OpenAI のクレジット切れ(HTTP 429 `insufficient_quota`)は、レート制限と区別して、再試行しない。
@@ -162,7 +162,7 @@ src/so101_vlm/
   perception/  画素+深度 -> ロボット座標(投影・キャリブレーション)
   policy/      IK(DLS)、把持・運搬の軌道生成、実行器(安全フィルタ経由)
   safety/      可動域・速度・作業範囲・状態途絶の安全フィルタ
-  vlm/         VlmClient 抽象、Anthropic / OpenAI / Gemini、出力の検証、キャッシュ
+  vlm/         VlmClient 抽象、Anthropic / OpenAI / Gemini / Ollama、出力の検証、キャッシュ
   eval/        1 試行(trial)、複数試行(runner)、成功判定(judge)、比較(compare)、動画
   nodes/       dora-rs のノード(ロジックは dora に依存しない)
   record/      LeRobot 形式での記録
@@ -181,7 +181,7 @@ configs/       設定  scripts/ コマンド  tests/ 単体・統合テスト  d
 ## 今後(v2 と提出物)
 
 実機(SO-101)での pick & place と、SmolVLA の微調整(TASK-0032〜0045)は未着手。`Robot` 抽象・`Policy` 抽象・`configs/real.yaml`・LeRobot 形式の記録は、実機に差し替えられる形で用意してある。
-未実装・未確認: Gemma(Ollama、TASK-0022)、Anthropic・Gemini の実 API での確認(キー待ち)。
+未確認: Gemma(Ollama)の実機での検出(クライアントは実装・偽サーバでテスト済み。このPCでは動かさない方針)、Anthropic・Gemini の実 API での確認(キー待ち)。
 
 ## ライセンス・出典
 

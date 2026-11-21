@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from so101_vlm.eval.compare import (
+    ProviderUnavailableError,
     ProviderResult,
     compare_providers,
     evaluate_provider,
@@ -24,8 +25,10 @@ class _Client:
         self.provider, self.model = provider, model
 
 
-def _factory_for(*, missing=(), unimplemented=()):
+def _factory_for(*, missing=(), unimplemented=(), unavailable=()):
     def factory_for(name):
+        if name in unavailable:
+            raise ProviderUnavailableError("ollama に接続できません")
         if name in missing:
             raise MissingApiKeyError(f"{name} の API キーがありません。環境変数 {name.upper()}_API_KEY を設定してください")
         if name in unimplemented:
@@ -104,6 +107,12 @@ def test_missing_key_is_not_evaluated_and_names_the_variable():
 def test_unimplemented_provider_is_not_evaluated():
     r = evaluate_provider("ollama", client_factory_for=_factory_for(unimplemented=("ollama",)), trial_fn=_trial_fn(), **ARGS)
     assert r.status == "not_evaluated" and "実装" in r.reason
+
+
+def test_unavailable_provider_is_not_evaluated_not_zero_percent():
+    # Ollama が未起動・モデル未取得のとき、成功率 0% ではなく「未評価」にする (AC-04)
+    r = evaluate_provider("ollama", client_factory_for=_factory_for(unavailable=("ollama",)), trial_fn=_trial_fn(), **ARGS)
+    assert r.status == "not_evaluated" and "利用できません" in r.reason and r.summary is None
 
 
 def test_unexpected_error_aborts_only_that_provider_and_keeps_partial_records():

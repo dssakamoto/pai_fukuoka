@@ -55,6 +55,7 @@
 - **選定: `gemma4:e4b`**。bbox を公式にサポートするのは Gemma 4(Gemma 3 のモデルカードに記載なし)。メモリは 16GB に余裕がある。`num_ctx` を小さく抑えて KV キャッシュを節約する。
 - 座標: Gemma 4 は 0〜1000 の正規化 `[y_min, x_min, y_max, x_max]`(Gemini と同じ。順序は公式ヘルパーのコードから推測 🟡)。
 - 呼び出し: `ollama.chat(model="gemma4:e4b", messages=[{"role":"user","content":...,"images":[path]}], format=<schema>)`。OpenAI 互換は `response_format` 対応だが、json_schema の形は Ollama のドキュメントに例がない 🔴。
+- 実装 (TASK-0022、2026-11-21): OpenAI 互換ではなく、ネイティブの `POST /api/chat` (`format` に JSON スキーマ、`options.num_ctx`、`stream:false`、画像は `messages[].images` に base64) を標準ライブラリで呼ぶ。json_schema の形が未文書の 🔴 を避けるため。404 (モデル未取得) は再試行しない。評価の前に `/api/tags` で起動とモデルの取得を確かめ、使えなければ「未評価」にする。実 Ollama での座標の実測は未。
 - ⚠ **このPC(開発機)では動作確認しない方針**(ユーザ判断。メモリ不足で止まる懸念)。TASK-0022 は実機の別PC、またはスキップ。AC-04 により、動かせないプロバイダはレポートで「未評価」と書く。
 - 🔴 Ollama 側の最低バージョンは gemma4 のページに記載なし。gemma3 は 0.6 以上。
 
