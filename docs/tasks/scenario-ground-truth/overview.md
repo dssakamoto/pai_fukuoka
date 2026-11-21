@@ -37,7 +37,7 @@
 - [x] [SGT-005: Scenario と sample_scenario(Fixed)を追加する](SGT-005.md) - 2h (TDD) 🔵 ✅ 完了 (2026-11-21。コミット a389d1a、CI 成功)
 - [x] [SGT-006: apply_scenario でシミュレーションに配置を反映する](SGT-006.md) - 2h (TDD) 🔵 ✅ 完了 (2026-11-21。コミット a389d1a、CI 成功)
 - [x] [SGT-007: GroundTruth を真値の唯一の窓口にして oracle・デモ・試行を載せ替える](SGT-007.md) - 3h (TDD) 🔵 ✅ 実装済み (2026-11-21。CI で確認中。world に箱の xy を載せた点が設計との差分)
-- [ ] [SGT-008: Observation を拡張し、Evaluator Protocol と SimEvaluator を追加する](SGT-008.md) - 2h (TDD) 🟡
+- [x] [SGT-008: Observation を拡張し、Evaluator Protocol と SimEvaluator を追加する](SGT-008.md) - 2h (TDD) 🟡 ✅ 実装済み (2026-11-21。CI で確認中)
 - [ ] [SGT-009: 到達可能領域を IK 格子で計算して保存し、読み込めるようにする](SGT-009.md) - 3h (TDD) 🟡
 - [ ] [SGT-010: 箱位置の UniformXY 生成と到達可能性による棄却を実装する](SGT-010.md) - 3h (TDD) 🔵
 - [ ] [SGT-011: 障害物 geom をモデルから自動収集する](SGT-011.md) - 2h (TDD) 🔵

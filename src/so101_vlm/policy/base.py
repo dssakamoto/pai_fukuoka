@@ -28,19 +28,47 @@ def _frozen_vector(name: str, value: object, size: int) -> np.ndarray:
     return vec
 
 
+def _frozen_image(name: str, value: object, *, ndim: int, dtype_kind: str) -> np.ndarray | None:
+    """【機能概要】: 画像 (None 可) を検証し、読み取り専用のコピーにして返す。型・次元の違いは ValueError 🟡
+
+    dtype_kind: "u" (uint8 の RGB) か "f" (float の深度)。深度は欠測 (0 や inf) があり得るので有限は要求しない。
+    """
+    if value is None:
+        return None
+    kind = "uint8" if dtype_kind == "u" else "float"
+    if not isinstance(value, np.ndarray) or value.dtype.kind != dtype_kind or value.ndim != ndim:
+        raise ValueError(f"{name} は {ndim} 次元の {kind} 配列で指定してください")
+    if ndim == 3 and value.shape[2] != 3:
+        raise ValueError(f"{name} は (H, W, 3) で指定してください: shape={value.shape}")
+    if value.size == 0:
+        raise ValueError(f"{name} が空です: shape={value.shape}")
+    copy = np.array(value, copy=True)
+    copy.flags.writeable = False
+    return copy
+
+
 @dataclass(frozen=True)
 class Observation:
     """【機能概要】: 方策への観測。q は (6,) の関節角 [rad]、timestamp は状態の時刻 [s]。🟡
 
+    rgb ((H, W, 3) uint8)・depth ((H, W) float [m])・instruction は任意 (SGT-008)。真値 (GroundTruth / Scenario) は持たない
+    (方策は、評価用の真値を見てはいけない。FR-004 / FR-402)。
     生成時にコピーして読み取り専用にする (呼び出し側の配列と共有しない)。
     """
 
     q: np.ndarray
     timestamp: float
+    rgb: np.ndarray | None = None
+    depth: np.ndarray | None = None
+    instruction: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "q", _frozen_vector("q", self.q, N_JOINTS))
         object.__setattr__(self, "timestamp", require_number("timestamp", self.timestamp))
+        object.__setattr__(self, "rgb", _frozen_image("rgb", self.rgb, ndim=3, dtype_kind="u"))
+        object.__setattr__(self, "depth", _frozen_image("depth", self.depth, ndim=2, dtype_kind="f"))
+        if not isinstance(self.instruction, str):
+            raise ValueError(f"instruction は str で指定してください: {self.instruction!r}")
 
     @classmethod
     def from_state(cls, state: RobotState) -> Observation:
