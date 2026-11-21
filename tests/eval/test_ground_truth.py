@@ -118,6 +118,7 @@ def test_fixed_pick_runs_on_a_moved_box_and_judges_against_it():
     assert out.judge is not None or out.failure is not None
 
 
+@pytest.mark.render  # run_trial は撮影する (OpenGL が要る)。CI では除かれる
 def test_run_trial_default_scenario_matches_the_explicit_default():
     seed = 2
     gt = GroundTruth(sample_scenario(seed), G)
