@@ -39,7 +39,7 @@
 - [x] [SGT-007: GroundTruth を真値の唯一の窓口にして oracle・デモ・試行を載せ替える](SGT-007.md) - 3h (TDD) 🔵 ✅ 実装済み (2026-11-21。CI で確認中。world に箱の xy を載せた点が設計との差分)
 - [x] [SGT-008: Observation を拡張し、Evaluator Protocol と SimEvaluator を追加する](SGT-008.md) - 2h (TDD) 🟡 ✅ 実装済み (2026-11-21。CI で確認中)
 - [ ] [SGT-009: 到達可能領域を IK 格子で計算して保存し、読み込めるようにする](SGT-009.md) - 3h (TDD) 🟡 🟡 一部完了 (2026-11-21。reachable.py・compute_reachable.py・テストは実装済み。configs/reachable.yaml は MuJoCo が動く環境での生成待ち)
-- [ ] [SGT-010: 箱位置の UniformXY 生成と到達可能性による棄却を実装する](SGT-010.md) - 3h (TDD) 🔵
+- [ ] [SGT-010: 箱位置の UniformXY 生成と到達可能性による棄却を実装する](SGT-010.md) - 3h (TDD) 🔵 🟡 一部完了 (2026-11-21。生成ロジックは実装・合成領域でテスト済み。保存済み yaml が前提の 2 項目 (G1 (a) の 100 seed 保証、IK 計画失敗 0 件) は reachable.yaml の生成待ち)
 - [ ] [SGT-011: 障害物 geom をモデルから自動収集する](SGT-011.md) - 2h (TDD) 🔵
 - [ ] [SGT-012: 箱位置の掃引(3x3 格子 x oracle)スクリプトを追加する](SGT-012.md) - 2h (DIRECT) 🟡
 - [ ] [SGT-013: SCENE_SPEC の箱位置・作業範囲を削除し、再現性を最終確認する](SGT-013.md) - 2h (DIRECT) 🔵
