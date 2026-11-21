@@ -95,7 +95,7 @@ def sample_scenario(
 
     不正な seed・spec は、乱数を作る前に ValueError。ブロック → 箱の順に、同じ rng から引く。
     UniformXY は、箱の外周が到達可能領域に収まり、ブロックと min_gap 以上離れる位置を棄却サンプリングで引く
-    (max_attempts を超えたら ValueError。FR-104)。ブロックの列は Fixed と同じ (乱数の消費順序を変えない。G1 (a))。
+    (max_attempts を超えたら ValueError。FR-104)。ブロックの列は Fixed と同じ (乱数の消費順序を変えない。G1 (b))。
     """
     seed = require_int("seed", seed, 0)
     if not isinstance(spec, ScenarioSpec):
@@ -140,15 +140,11 @@ def _sample_box(
     """【機能概要】: 箱の中心を、ブロックの後に同じ rng から引く (候補ごとに x, y の順) 🔵
 
     棄却条件 (🟡): (a) 箱の外周 (内寸 + 壁 + margin) が到達可能領域の内側、(b) 箱の外周とブロックの縁の間隔が min_gap 以上
-    (正方形どうしの最大座標差で測る = 保守的)。ブロックは、全て領域の内側であること (G1 (a)。外れるなら ValueError)。
+    (正方形どうしの最大座標差で測る = 保守的)。
+    ブロックは領域で棄却しない (G1 は (b): 実測で、ロボットの付け根の近くにはブロックを掴めない領域があり、領域は「箱を置く位置」の
+    ものだから)。ブロックの列は Fixed と同じまま (乱数の消費順序を変えない)。
     """
     region = box.region or reachable or load_reachable_region()
-    for i, (bx, by) in enumerate(blocks):
-        if not region.contains_xy(bx, by):
-            raise ValueError(
-                f"ブロック {i} の位置 ({bx:.3f}, {by:.3f}) が到達可能領域の外です。"
-                "領域がブロックの作業範囲を覆っていません (G1 (a) の前提)"
-            )
     outer = g.box_inner_half_size + g.box_wall_thickness + box.margin
     (xl, xh), (yl, yh) = region.bbox()
     x_lo, x_hi, y_lo, y_hi = xl + outer, xh - outer, yl + outer, yh - outer

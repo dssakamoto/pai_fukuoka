@@ -159,22 +159,6 @@ def test_saved_region_excludes_points_too_near_and_too_far(saved):
 
 
 @needs_saved
-def test_saved_region_covers_the_default_block_work_area(saved):
-    """SGT-010 の前提: ブロックの既定の作業範囲 (x 0.15〜0.35, y −0.10〜0.10) を覆う 🔵"""
-    from so101_vlm.eval.scene_spec import SCENE_SPEC
-
-    (x0, x1), (y0, y1) = SCENE_SPEC.work_area_x, SCENE_SPEC.work_area_y
-    step = saved.step
-    n_x, n_y = int(round((x1 - x0) / step)), int(round((y1 - y0) / step))
-    missing = [
-        (round(x0 + i * step, 6), round(y0 + j * step, 6))
-        for i in range(n_x + 1) for j in range(n_y + 1)
-        if not saved.contains_xy(x0 + i * step, y0 + j * step)
-    ]  # fmt: skip
-    assert not missing, f"作業範囲の中に到達できない点があります: {missing[:5]} ..."
-
-
-@needs_saved
 def test_saved_bbox_is_inside_the_motion_workspace(saved):
     """G4: workspace は自動生成しない。到達可能領域が workspace からはみ出すと、安全フィルタが拒否する位置に箱が置かれうる → 検知する 🟡"""
     ws = yaml.safe_load((REPO_ROOT / "configs" / "motion.yaml").read_text(encoding="utf-8"))["safety"]["workspace"]

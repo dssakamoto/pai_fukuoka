@@ -147,10 +147,12 @@ def test_attempts_exhausted_raises_value_error_with_the_count():
         sample_scenario(0, ScenarioSpec(max_attempts=200, box=UniformXY()), reachable=region)
 
 
-def test_blocks_outside_the_region_raise_value_error():
-    region = _grid((0.05, 0.50), (-0.35, 0.35), keep=lambda x, y, i, j: x < 0.30)  # ブロックの作業範囲の半分が外
-    with pytest.raises(ValueError, match="ブロック"):
-        sample_scenario(0, UNIFORM, reachable=region)
+def test_blocks_are_not_rejected_by_the_region():
+    """G1 (b): 領域は箱だけを棄却する。ブロックが領域の外にあっても、ブロックの列は Fixed と同じまま 🔵"""
+    region = _grid((0.05, 0.50), (-0.35, 0.35), keep=lambda x, y, i, j: x >= 0.17)  # 付け根の近く (x < 0.17) は領域の外
+    s = sample_scenario(0, UNIFORM, reachable=region)
+    assert s.blocks == sample_scenario(0).blocks
+    assert region.contains_xy(*s.box_xy)
 
 
 @pytest.mark.parametrize("kwargs", [{"margin": -0.01}, {"margin": float("nan")}, {"margin": True}, {"region": "r"}])
@@ -172,17 +174,28 @@ needs_saved = pytest.mark.skipif(
 
 @needs_saved
 @pytest.mark.parametrize("seed", range(100))
-def test_saved_region_covers_the_blocks_so_uniform_equals_fixed(seed):
-    """G1 (a) の保証: 既定の領域がブロック領域を覆う (違反する seed が出たら G1 を (b) に落とす) 🔵"""
-    assert sample_scenario(seed, UNIFORM).blocks == sample_scenario(seed).blocks
+def test_saved_region_uniform_keeps_the_fixed_blocks_and_places_the_box_inside(seed):
+    """保存済みの領域でも、UniformXY のブロックは Fixed と同じ。箱の外周は領域の内側 🔵"""
+    from so101_vlm.eval.reachable import load_reachable_region
+
+    s = sample_scenario(seed, UNIFORM)
+    assert s.blocks == sample_scenario(seed).blocks
+    assert _outline_inside(load_reachable_region(), *s.box_xy)
+
+
+_BOX_SIDE_WAYPOINTS = ("pre_place", "place", "retreat")
 
 
 @needs_saved
-def test_uniform_scenarios_do_not_fail_in_ik_planning():
-    """箱を乱数で動かした 20 件が、IK の計画失敗にならない (到達可能領域が実際の IK と整合している) 🟡"""
+def test_uniform_scenarios_have_no_box_side_planning_failure():
+    """箱を乱数で動かした 20 件で、箱の側の経由点 (pre_place / place / retreat) の計画が失敗しない 🟡
+
+    掴む側 (ブロックが付け根に近い等) の計画失敗は、箱の位置と無関係なので数えない (従来から起こりうる)。
+    """
     from so101_vlm.eval.failure import FailureKind
     from so101_vlm.eval.fixed_pick import run_fixed_pick
 
     for seed in range(20):
         out = run_fixed_pick(seed, "red", scenario=sample_scenario(seed, UNIFORM))
-        assert out.failure != FailureKind.PLANNING_FAILURE, f"seed {seed}: {out.planning_error} ({out.planning_waypoint})"
+        if out.failure == FailureKind.PLANNING_FAILURE:
+            assert out.planning_waypoint not in _BOX_SIDE_WAYPOINTS, f"seed {seed}: {out.planning_error} ({out.planning_waypoint})"
