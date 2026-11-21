@@ -105,9 +105,8 @@ def test_uniform_box_outline_is_inside_the_region_and_clear_of_the_blocks(seed):
     s = sample_scenario(seed, UNIFORM, reachable=region)
     cx, cy = s.box_xy
     assert _outline_inside(region, cx, cy)
-    spec = ScenarioSpec()
     for bx, by in s.blocks:
-        assert max(abs(cx - bx), abs(cy - by)) >= OUTER + G.block_half_size + spec.min_gap
+        assert max(abs(cx - bx), abs(cy - by)) >= OUTER + G.block_half_size + UniformXY().block_gap
 
 
 def test_uniform_is_deterministic_and_varies_with_the_seed():
@@ -138,11 +137,8 @@ def test_region_too_small_for_the_box_raises_value_error():
 
 
 def test_attempts_exhausted_raises_value_error_with_the_count():
-    # ブロックの作業範囲は全部 True、その外は市松 (箱の外周が必ず False の点を踏む)
-    region = _grid(
-        (0.05, 0.50), (-0.35, 0.35),
-        keep=lambda x, y, i, j: (0.14 <= x <= 0.36 and -0.11 <= y <= 0.11) or (i + j) % 2 == 0,
-    )  # fmt: skip
+    # 市松模様の領域: 箱の外周のどこかが必ず False の点を踏む (領域に外周が収まる位置が無い)
+    region = _grid((0.05, 0.50), (-0.35, 0.35), keep=lambda x, y, i, j: (i + j) % 2 == 0)
     with pytest.raises(ValueError, match="200 回"):
         sample_scenario(0, ScenarioSpec(max_attempts=200, box=UniformXY()), reachable=region)
 
@@ -155,7 +151,21 @@ def test_blocks_are_not_rejected_by_the_region():
     assert region.contains_xy(*s.box_xy)
 
 
-@pytest.mark.parametrize("kwargs", [{"margin": -0.01}, {"margin": float("nan")}, {"margin": True}, {"region": "r"}])
+def test_default_block_gap_is_what_the_default_box_already_has():
+    """既定の箱 (0.20, 0.19) と、作業範囲の端 (y 0.10) のブロックの縁との間隔 = block_gap の既定。それより厳しくすると既定の配置が違反する 🔵"""
+    default_gap = G.box_default_xy[1] - OUTER - (0.10 + G.block_half_size)
+    assert UniformXY().block_gap == pytest.approx(default_gap)
+
+
+def test_block_gap_widens_the_clearance():
+    region = _grid((0.10, 0.45), (-0.15, 0.30))
+    for seed in range(10):
+        s = sample_scenario(seed, ScenarioSpec(box=UniformXY(block_gap=0.06)), reachable=region)
+        cx, cy = s.box_xy
+        assert all(max(abs(cx - bx), abs(cy - by)) >= OUTER + G.block_half_size + 0.06 for bx, by in s.blocks)
+
+
+@pytest.mark.parametrize("kwargs", [{"block_gap": -0.01}, {"block_gap": float("nan")}, {"margin": -0.01}, {"margin": float("nan")}, {"margin": True}, {"region": "r"}])
 def test_invalid_uniform_xy_raises_value_error(kwargs):
     with pytest.raises(ValueError):
         UniformXY(**kwargs)
