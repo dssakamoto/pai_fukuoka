@@ -1,4 +1,4 @@
-"""成功判定 judge_in_box (TASK-0013 の最小版。TASK-0015 で正式化する)。
+"""成功判定 judge_in_region / judge_in_box (TASK-0013 の最小版。TASK-0015 で正式化。SGT-004 で領域基準に)。
 
 🔵 design.md 6 節の配置、FR-07 の 3 条件に基づく。純粋関数 (入力を変更しない、乱数・時計を使わない)。
 (1) ブロック中心が箱の内寸の内側、(2) 中心が縁の高さ未満、(3) 並進の速さがしきい値以下。
@@ -11,6 +11,7 @@ from enum import Enum
 import numpy as np
 
 from so101_vlm.eval.eval_config import JudgeConfig
+from so101_vlm.eval.geometry import PlaceRegion
 from so101_vlm.eval.scene_spec import SCENE_SPEC, SceneSpec
 from so101_vlm.safety._validation import as_vector
 
@@ -40,30 +41,54 @@ class JudgeResult:
     speed: float
 
 
+def judge_in_region(
+    centre: object,
+    linear_velocity: object,
+    config: JudgeConfig,
+    region: PlaceRegion,
+) -> JudgeResult:
+    """【機能概要】: ブロックが置き先の領域 (PlaceRegion) の中で静止しているかを判定する 🔵 (SGT-004)
+
+    【実装方針】: (1)(2) はちょうどで失敗 (厳密な不等号)、(3) はちょうどで成功 (FR-07 の「以下」)。
+    箱の位置は定数 (SCENE_SPEC) ではなく、渡された region から読む (FR-005, FR-102)。
+    NaN / inf / shape 違い / bool / config・region の型違いは ValueError。ブロックの傾きは使わない。
+    """
+    if not isinstance(config, JudgeConfig):
+        raise ValueError(f"config は JudgeConfig で指定してください: {config!r}")
+    if not isinstance(region, PlaceRegion):
+        raise ValueError(f"region は PlaceRegion で指定してください: {region!r}")
+    pos = as_vector("centre", centre, _N_AXES)
+    vel = as_vector("linear_velocity", linear_velocity, _N_AXES)
+    dx = float(pos[0] - region.center_xy[0])
+    dy = float(pos[1] - region.center_xy[1])
+    limit = region.inner_half_size - config.margin_m
+    speed = float(np.linalg.norm(vel))
+    reasons = []
+    if not (abs(dx) < limit and abs(dy) < limit):
+        reasons.append(JudgeReason.OUTSIDE_INNER)
+    if not pos[2] < region.rim_z:
+        reasons.append(JudgeReason.ABOVE_RIM)
+    if not speed <= config.speed_max_mps:
+        reasons.append(JudgeReason.MOVING)
+    return JudgeResult(not reasons, tuple(reasons), (dx, dy), float(pos[2]), speed)
+
+
 def judge_in_box(
     centre: object,
     linear_velocity: object,
     config: JudgeConfig,
     spec: SceneSpec = SCENE_SPEC,
 ) -> JudgeResult:
-    """【機能概要】: ブロックが箱の中で静止しているかを判定する 🔵
+    """【機能概要】: 互換の別名。spec の箱 (既定の位置) を領域にして judge_in_region を呼ぶ 🟡
 
-    【実装方針】: (1)(2) はちょうどで失敗 (厳密な不等号)、(3) はちょうどで成功 (FR-07 の「以下」)。
-    NaN / inf / shape 違い / bool / config の型違いは ValueError。ブロックの傾きは使わない。
+    箱を動かす試行では judge_in_region に、その試行の PlaceRegion を渡す。
     """
-    if not isinstance(config, JudgeConfig):
+    if not isinstance(config, JudgeConfig):  # region の組み立て (PlaceRegion の検証) より先に config を検査する
         raise ValueError(f"config は JudgeConfig で指定してください: {config!r}")
-    pos = as_vector("centre", centre, _N_AXES)
-    vel = as_vector("linear_velocity", linear_velocity, _N_AXES)
-    dx = float(pos[0] - spec.box_center_xy[0])
-    dy = float(pos[1] - spec.box_center_xy[1])
-    limit = spec.box_inner_half_size - config.margin_m
-    speed = float(np.linalg.norm(vel))
-    reasons = []
-    if not (abs(dx) < limit and abs(dy) < limit):
-        reasons.append(JudgeReason.OUTSIDE_INNER)
-    if not pos[2] < spec.box_rim_z:
-        reasons.append(JudgeReason.ABOVE_RIM)
-    if not speed <= config.speed_max_mps:
-        reasons.append(JudgeReason.MOVING)
-    return JudgeResult(not reasons, tuple(reasons), (dx, dy), float(pos[2]), speed)
+    region = PlaceRegion(
+        center_xy=spec.box_center_xy,
+        inner_half_size=spec.box_inner_half_size,
+        rim_z=spec.box_rim_z,
+        floor_top_z=spec.box_floor_top_z,
+    )
+    return judge_in_region(centre, linear_velocity, config, region)
