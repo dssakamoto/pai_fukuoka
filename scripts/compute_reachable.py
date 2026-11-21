@@ -1,79 +1,87 @@
-"""到達可能領域を IK の格子で計算して configs/reachable.yaml に保存する (SGT-009)。一度だけ実行する。
+"""到達可能領域を、実際の IkPolicy で格子ごとに計画して configs/reachable.yaml に保存する (SGT-009)。一度だけ実行する。
 
   uv run python scripts/compute_reachable.py                  # 既定の格子 (x 0.05〜0.50, y -0.35〜0.35, 刻み 1 cm)
   uv run python scripts/compute_reachable.py --step 0.005     # 細かく
   uv run python scripts/compute_reachable.py --out /tmp/r.yaml   # 別の場所へ (configs を汚さない)
 
-xy 格子の各点を「箱を置く位置として、軌道を計画できるか」で判定する。IkPolicy と同じ条件 (安全フィルタの workspace に入る、
-solve_ik、tcp_offset、既定のピッチ候補、seed は 0 姿勢) で、箱の上の 2 つの経由点が全部解ける点を到達可能 (=1) とする:
-  pre_place (運搬の高さ。pre_grasp と同じ z = ブロックの静止高さ + approach_height) /
-  place (箱の底の上面 + place_height)。 (retreat は pre_place と同じ目標)
-ブロックを掴む位置 (grasp / pre_grasp) は含めない: ロボットの付け根の近くには掴めない領域があり (実測)、
-それはブロックの配置の問題で、箱を置く位置の問題ではない (SGT-010: G1 は (b)。箱だけを領域で棄却する)。
-workspace を条件に入れるので、領域は必ず workspace の内側に収まる (workspace は安全の設定なので、このスクリプトは広げない)。
-結果は 0/1 の文字列行で保存する (差分が読める)。実行後に、領域の範囲と、configs/motion.yaml の workspace に反映すべき値を表示する
-(motion.yaml は自動では書き換えない。値を見て手で更新する。tests/eval/test_reachable.py が食い違いを検知する)。
-終了コード: 0 = 保存した、2 = 引数の誤り・到達できる点が無い。
+xy 格子の各点を「その位置に箱を置いて、1 試行の軌道を計画できるか」で判定する。箱の body_pos を格子点に動かし、
+固定の基準のブロック (0.25, 0.0) を掴んで箱に入れる軌道を、実際の IkPolicy (安全フィルタの workspace・IK・障害物とのすき間・
+経路の作業範囲) で計画する。計画できたら到達可能 (=1)。
+- 掴む側 (pre_grasp / grasp / lift) は基準のブロックで固定する。最初に、箱を既定の位置 (基準のブロックから離れている) に置いて
+  計画できることを確かめ、できないならスクリプトを止める (基準が悪い)。格子の途中で、箱が基準のブロックに近すぎて計画できない点は、
+  単に到達不可 (=0) とする。ブロックの配置との関係は領域に含めない (SGT-010: G1 は (b)。実測で、付け根の近くには掴めない領域がある)。
+- workspace・すき間も計画の条件に入るので、領域は必ず workspace の内側に収まる (workspace は安全の設定なので、このスクリプトは広げない)。
+- 計画の判定は、実際の試行と同じコード (IkPolicy.act) なので、領域と実際の計画が食い違わない。
+
+実行後に、領域の範囲を表示する。tests/eval/test_reachable.py が、領域と configs/motion.yaml の workspace の食い違いを検知する。
+終了コード: 0 = 保存した、2 = 引数の誤り・到達できる点が無い・基準のブロックが計画できない。
 """
 
 import argparse
 import sys
 from pathlib import Path
 
-import mujoco
 import numpy as np
 import yaml
 
-from so101_vlm.eval.geometry import get_geometry
+from so101_vlm.eval.geometry import BOX_BODY_NAME, get_geometry
 from so101_vlm.eval.reachable import REACHABLE_PATH, ReachableRegion
-from so101_vlm.policy.ik import solve_ik
-from so101_vlm.policy.ik_types import IkError
+from so101_vlm.policy.base import Goal, Observation
+from so101_vlm.policy.ik_policy import IkPolicy
+from so101_vlm.policy.trajectory import TrajectoryError
 from so101_vlm.policy.trajectory_config import load_trajectory_config
 from so101_vlm.robot.model_paths import PICKPLACE_SCENE_PATH
+from so101_vlm.robot.sim import SimRobot
 from so101_vlm.safety.config import load_safety_config
-from so101_vlm.safety.workspace import is_in_workspace
 
 HEADER = (
     "# 到達可能領域 (SGT-009)。scripts/compute_reachable.py が生成する。手で編集しない。\n"
-    "# 行 = x、列 = y の 0/1。格子点 (x0 + i*step, y0 + j*step) に箱を置く軌道を計画できる (workspace の内側で pre_place / place の IK が解ける) =1。\n"
+    "# 行 = x、列 = y の 0/1。格子点 (x0 + i*step, y0 + j*step) に箱を置く軌道を、実際の IkPolicy で計画できる =1。\n"
 )
+REFERENCE_PICK_XY = (0.25, 0.0)  # 掴む側を固定する基準のブロック (作業範囲の中央)
 
 
-def _target_heights() -> dict[str, float]:
-    cfg = load_trajectory_config()
-    g = get_geometry()
-    pre_grasp_z = g.block_rest_z + cfg.approach_height  # IkPolicy: pre_place は pre_grasp と同じ高さ
-    return {
-        "pre_place": max(cfg.min_carry_z, pre_grasp_z),
-        "place": g.box_floor_top_z + cfg.place_height,
-    }
+class ReferencePickError(RuntimeError):
+    """基準のブロックを、箱が既定の位置のときでも計画できない (基準を見直す)。"""
 
 
-def reachable_at(model: mujoco.MjModel, x: float, y: float, heights: dict[str, float], tcp_offset) -> bool:
-    """【機能概要】: (x, y) で全ての高さの目標が解けるか。最初に失敗した時点で打ち切る 🟡"""
-    seed = np.zeros(6)
-    workspace = load_safety_config().workspace
-    for z in heights.values():
-        if not is_in_workspace(np.array((x, y, z)), workspace):
-            return False  # 安全フィルタが拒否する位置 (IK の前に TrajectoryError target_out_of_workspace)
-        try:
-            solve_ik(model, (x, y, z), seed, tcp_offset=tcp_offset)
-        except IkError:
-            return False
+def plannable(policy_factory, obs: Observation, pick: np.ndarray, x: float, y: float, floor_top_z: float) -> bool:
+    """【機能概要】: 箱の中心を (x, y) にして、軌道を計画できるか。計画できなければ False (理由は問わない) 🟡"""
+    goal = Goal(pick_target_base=pick, place_target_base=np.array((x, y, floor_top_z)))
+    try:
+        policy_factory().act(obs, goal)
+    except TrajectoryError:
+        return False
     return True
 
 
 def compute(x_range: tuple[float, float], y_range: tuple[float, float], step: float) -> ReachableRegion:
-    model = mujoco.MjModel.from_xml_path(str(PICKPLACE_SCENE_PATH))
-    heights = _target_heights()
-    tcp_offset = load_trajectory_config().tcp_offset
+    g = get_geometry()
+    traj_cfg, safety_cfg = load_trajectory_config(), load_safety_config()
+    pick = np.array((*REFERENCE_PICK_XY, g.block_rest_z))
     nx = int(round((x_range[1] - x_range[0]) / step)) + 1
     ny = int(round((y_range[1] - y_range[0]) / step)) + 1
     rows = []
-    for i in range(nx):
-        x = x_range[0] + i * step
-        rows.append(tuple(reachable_at(model, x, y_range[0] + j * step, heights, tcp_offset) for j in range(ny)))
-        print(f"x={x:.3f}: {''.join('1' if v else '0' for v in rows[-1])}", flush=True)
+    with SimRobot(PICKPLACE_SCENE_PATH) as robot:
+        model, _ = robot.mujoco_handles()
+        obs = Observation.from_state(robot.get_state())
+        box = model.body(BOX_BODY_NAME).id
+        model.body_pos[box][:2] = g.box_default_xy  # 基準の確認: 箱が既定の位置で、基準のブロックを計画できること
+        if not plannable(lambda: IkPolicy(model, config=traj_cfg, safety=safety_cfg), obs, pick, *g.box_default_xy, g.box_floor_top_z):
+            raise ReferencePickError(f"基準のブロック {REFERENCE_PICK_XY} が、箱が既定の位置 {g.box_default_xy} でも計画できません")
+        for i in range(nx):
+            x = x_range[0] + i * step
+            row = []
+            for j in range(ny):
+                y = y_range[0] + j * step
+                model.body_pos[box][:2] = (x, y)  # 箱を動かす (IkPolicy は model のすき間を見る。試行間で漏れないよう、このプロセス限り)
+                row.append(
+                    plannable(
+                        lambda: IkPolicy(model, config=traj_cfg, safety=safety_cfg), obs, pick, x, y, g.box_floor_top_z
+                    )
+                )
+            rows.append(tuple(row))
+            print(f"x={x:.3f}: {''.join('1' if v else '0' for v in row)}", flush=True)
     return ReachableRegion(x_range[0], y_range[0], step, tuple(rows))
 
 
@@ -89,6 +97,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     try:
         region = compute(tuple(args.x_range), tuple(args.y_range), args.step)
+    except ReferencePickError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
     except ValueError as exc:  # 到達できる点が 1 つも無い (ReachableRegion の検証)
         print(f"到達できる点がありません: {exc}", file=sys.stderr)
         return 2
@@ -97,10 +108,6 @@ def main(argv: list[str] | None = None) -> int:
     (xl, xh), (yl, yh) = region.bbox()
     print(f"\n保存しました: {args.out}")
     print(f"到達可能な範囲: x {xl:.3f}〜{xh:.3f}, y {yl:.3f}〜{yh:.3f}")
-    print(
-        "configs/motion.yaml の workspace は、この範囲を含むようにしてください (手で更新): "
-        f"lower の x, y は {xl:.3f}, {yl:.3f} 以下、upper の x, y は {xh:.3f}, {yh:.3f} 以上"
-    )
     return 0
 
 
