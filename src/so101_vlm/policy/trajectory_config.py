@@ -25,6 +25,7 @@ _TRAJECTORY_KEYS = frozenset(
     }
 )  # fmt: skip
 _CLEARANCE_KEYS = frozenset({"obstacle_m", "self_m", "obstacle_geoms"})
+AUTO_OBSTACLES = "auto"  # obstacle_geoms の値。モデルから自動で集める (SGT-011)
 
 
 def _non_negative(name: str, value: object) -> float:
@@ -50,19 +51,21 @@ class ClearanceConfig:
     """【機能概要】: FK のすき間確認の設定。変更不可。🟡
 
     obstacle_m: ロボットと障害物のすき間の下限 [m]、self_m: 自己干渉のすき間の下限 [m]、
-    obstacle_geoms: 障害物とみなす geom 名 (床・箱の底と壁)。
+    obstacle_geoms: 障害物とみなす geom 名 (床・箱の底と壁)。None ならモデルから自動で集める (clearance.collect_obstacle_geoms。
+    yaml では `obstacle_geoms: auto`)。空の列は不可。
     """
 
     obstacle_m: float
     self_m: float
-    obstacle_geoms: tuple[str, ...]
+    obstacle_geoms: tuple[str, ...] | None
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "obstacle_m", _non_negative("clearance.obstacle_m", self.obstacle_m))
         object.__setattr__(self, "self_m", _non_negative("clearance.self_m", self.self_m))
-        object.__setattr__(
-            self, "obstacle_geoms", _name_tuple("clearance.obstacle_geoms", self.obstacle_geoms)
-        )
+        if self.obstacle_geoms is not None:
+            object.__setattr__(
+                self, "obstacle_geoms", _name_tuple("clearance.obstacle_geoms", self.obstacle_geoms)
+            )
 
 
 @dataclass(frozen=True)
@@ -122,6 +125,7 @@ def load_trajectory_config(path: str | Path = DEFAULT_MOTION_CONFIG_PATH) -> Tra
     return TrajectoryConfig(
         **fields,
         clearance=ClearanceConfig(
-            obstacle_m=clr["obstacle_m"], self_m=clr["self_m"], obstacle_geoms=clr["obstacle_geoms"]
+            obstacle_m=clr["obstacle_m"], self_m=clr["self_m"],
+            obstacle_geoms=None if clr["obstacle_geoms"] == AUTO_OBSTACLES else clr["obstacle_geoms"],
         ),
     )

@@ -37,6 +37,42 @@ def _is_parent_child(model: mujoco.MjModel, a: int, b: int) -> bool:
     return a == b or model.body_parentid[a] == b or model.body_parentid[b] == a
 
 
+def _is_static(model: mujoco.MjModel, body: int) -> bool:
+    """【機能概要】: body とその祖先がどれも自由度を持たない (世界に固定されている) なら True 🟡"""
+    walker = body
+    while True:
+        if model.body_dofnum[walker] > 0:
+            return False
+        if walker == 0:
+            return True
+        walker = int(model.body_parentid[walker])
+
+
+# 🟡 Intent: 障害物を名前の手書きでなく、モデルの性質から決める (FR-008)。箱を動かしても・箱の geom を増やしても、安全側のコードは変わらない。
+#    geom の group では印を付けない (group 4 以上は既定の描画に写らず、箱が撮影画像から消える)。
+def collect_obstacle_geoms(model: mujoco.MjModel) -> tuple[str, ...]:
+    """【機能概要】: 障害物とみなす geom の名前を、モデルから集める (geom id の順) 🟡
+
+    条件: ロボット (base とその子孫) の geom でない / 衝突に使う (contype か conaffinity が 0 でない) /
+    世界に固定された body (自由度なし。床と箱) の geom。ブロック (自由関節) とロボットは含まれない。
+    名前のない geom は ClearanceChecker が名前で引けないので ValueError (名前を付けるか、設定で一覧を明示する)。
+    """
+    robot = _robot_bodies(model)
+    names: list[str] = []
+    for g in range(model.ngeom):
+        body = int(model.geom_bodyid[g])
+        if body in robot or not (model.geom_contype[g] or model.geom_conaffinity[g]) or not _is_static(model, body):
+            continue
+        name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, g)
+        if not name:
+            raise ValueError(
+                f"名前のない障害物 geom があります (geom id {g}, body {mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body)!r})。"
+                "名前を付けるか、configs/motion.yaml の obstacle_geoms に一覧を明示してください"
+            )
+        names.append(name)
+    return tuple(names)
+
+
 class ClearanceChecker:
     """【機能概要】: 関節角の列から、サンプルごとの TCP 位置と最小すき間 (障害物・自己) を計算する 🟡"""
 

@@ -15,7 +15,7 @@ import mujoco
 import numpy as np
 
 from so101_vlm.policy.base import Goal, Observation
-from so101_vlm.policy.clearance import ClearanceChecker
+from so101_vlm.policy.clearance import ClearanceChecker, collect_obstacle_geoms
 from so101_vlm.policy.ik import PITCH_CANDIDATES_DEG, solve_ik
 from so101_vlm.policy.ik_types import IkError, IkSolution
 from so101_vlm.policy.trajectory import (
@@ -97,7 +97,8 @@ class IkPolicy:
         self._safety = load_safety_config() if safety is None else safety
         self._lower, self._upper = limits_from_model(model)
         self._check_gripper_range()
-        self._checker = ClearanceChecker(model, self._config.clearance.obstacle_geoms)
+        obstacles = self._config.clearance.obstacle_geoms
+        self._checker = ClearanceChecker(model, collect_obstacle_geoms(model) if obstacles is None else obstacles)
 
     def _check_gripper_range(self) -> None:
         """【機能概要】: gripper の開き / 閉じ指令が ctrlrange 内か確かめる (範囲外は ValueError) 🟡"""
