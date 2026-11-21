@@ -8,8 +8,7 @@ sim の世界 (物理) は robot ノードだけが持つ。camera は robot が
 
 import numpy as np
 
-from so101_vlm.eval.eval_config import load_eval_config
-from so101_vlm.eval.layout import place_blocks, sample_layout
+from so101_vlm.eval.scenario import apply_scenario
 from so101_vlm.nodes.base import NodeBase
 from so101_vlm.nodes.node_config import NodeConfig
 from so101_vlm.nodes.registry_types import TaskSpec
@@ -46,10 +45,9 @@ class RobotNode(NodeBase):
     def handle(self, name: str, payload: object, meta: dict) -> None:
         if name == "task":
             task = TaskSpec(**payload)  # type: ignore[arg-type]
-            place = load_eval_config().placement
             self._robot = SimRobot(self.config.scene_path)
             model, data = self._robot.mujoco_handles()
-            place_blocks(model, data, sample_layout(task.seed, place.n_blocks, place.area, place.min_gap, place.max_attempts))
+            apply_scenario(model, data, task.scenario())  # 箱の位置も反映する (SGT-007)
             self._publish(0, phase="init")
         elif name == "joint_command":
             if self._robot is None:

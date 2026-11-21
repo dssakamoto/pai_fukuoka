@@ -11,8 +11,8 @@ from collections.abc import Callable
 
 import numpy as np
 
-from so101_vlm.eval.eval_config import load_eval_config
-from so101_vlm.eval.layout import sample_layout
+from so101_vlm.eval.geometry import get_geometry
+from so101_vlm.eval.ground_truth import GroundTruth
 from so101_vlm.eval.oracle_vlm import OracleVlm
 from so101_vlm.eval.trial import estimate_goal
 from so101_vlm.nodes.base import NodeBase
@@ -43,9 +43,8 @@ def _det_from_json(raw: dict) -> Detection:
 def default_client(config: NodeConfig, task: TaskSpec) -> object:
     """【機能概要】: 設定のプロバイダの VlmClient。oracle は真の配置から作る偽 VLM (キー不要)、他は create_client 🔵"""
     if config.vlm_provider == "oracle":
-        place = load_eval_config().placement
-        layout = sample_layout(task.seed, place.n_blocks, place.area, place.min_gap, place.max_attempts)
-        return OracleVlm(layout, task.colour, load_calibration(config.calibration_path))
+        truth = GroundTruth(task.scenario(), get_geometry())
+        return OracleVlm(truth.layout, task.colour, load_calibration(config.calibration_path), truth.place_region)
     return create_client(load_vlm_config(), config.vlm_provider)
 
 

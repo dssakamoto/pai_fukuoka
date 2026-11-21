@@ -16,6 +16,7 @@ from typing import Any
 import mujoco
 import numpy as np
 
+from so101_vlm.eval.eval_config import PlacementConfig
 from so101_vlm.eval.geometry import BOX_BODY_NAME, PlaceRegion, SceneGeometry, get_geometry
 from so101_vlm.eval.layout import _check_feasible, _sample_points, place_blocks
 from so101_vlm.eval.validation import require_area, require_int, require_min_gap
@@ -104,6 +105,18 @@ def sample_scenario(
     else:
         raise NotImplementedError("UniformXY の生成は SGT-010 で実装します")
     return Scenario(seed=seed, blocks=blocks, box_xy=(float(box_xy[0]), float(box_xy[1])))
+
+
+def scenario_for(seed: int, placement: PlacementConfig, box: BoxSpec | None = None) -> Scenario:
+    """【機能概要】: 評価設定 (configs/eval.yaml の placement) の配置条件で Scenario を作る。box を省くと Fixed (従来どおり) 🔵
+
+    run_trial / run_fixed_pick / runner / nodes が共有する (配置条件の読み替えを 1 か所にする)。
+    """
+    spec = ScenarioSpec(
+        n_blocks=placement.n_blocks, area=placement.area, min_gap=placement.min_gap,
+        max_attempts=placement.max_attempts, box=Fixed() if box is None else box,
+    )  # fmt: skip
+    return sample_scenario(seed, spec)
 
 
 def apply_scenario(model: mujoco.MjModel, data: mujoco.MjData, scenario: Scenario) -> None:

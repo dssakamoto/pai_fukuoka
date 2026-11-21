@@ -18,7 +18,9 @@ from types import TracebackType
 from so101_vlm.eval.eval_config import load_eval_config
 from so101_vlm.eval.failure import FAILURE_GROUP, FailureKind
 from so101_vlm.eval.fixed_pick import COLOUR_TO_BODY
-from so101_vlm.eval.layout import sample_layout
+from so101_vlm.eval.geometry import get_geometry
+from so101_vlm.eval.ground_truth import GroundTruth
+from so101_vlm.eval.scenario import scenario_for
 from so101_vlm.eval.oracle_vlm import OracleVlm
 from so101_vlm.eval.trial import TrialOutcome, run_trial
 from so101_vlm.eval.validation import require_int
@@ -94,8 +96,8 @@ def oracle_client_factory(calibration: Calibration | None = None) -> Callable[[i
     place = load_eval_config().placement
 
     def client_for(seed: int, colour: str) -> OracleVlm:
-        layout = sample_layout(seed, place.n_blocks, place.area, place.min_gap, place.max_attempts)
-        return OracleVlm(layout, colour, cal)
+        truth = GroundTruth(scenario_for(seed, place), get_geometry())
+        return OracleVlm(truth.layout, colour, cal, truth.place_region)
 
     return client_for
 
