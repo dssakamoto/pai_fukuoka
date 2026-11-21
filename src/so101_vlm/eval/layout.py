@@ -56,8 +56,18 @@ def sample_layout(
     max_attempts = require_int("max_attempts", max_attempts, 1)
     _check_feasible(n, area, min_gap)
 
-    (x_lo, x_hi), (y_lo, y_hi) = _sampling_bounds(area)
     rng = np.random.default_rng(seed)
+    return _sample_points(rng, n, area, min_gap, max_attempts)
+
+
+def _sample_points(
+    rng: np.random.Generator, n: int, area: float, min_gap: float, max_attempts: int
+) -> tuple[tuple[float, float], ...]:
+    """【機能概要】: rng から n 個の中心を棄却サンプリングする (検証済みの引数を受ける) 🔵
+    【実装方針】: 候補ごとに x, y の順に uniform を引く。乱数の消費順序は SGT-005 の前後で変えない
+    (sample_layout と eval/scenario.py の sample_scenario が共有し、箱は最後に同じ rng から引く)。
+    """
+    (x_lo, x_hi), (y_lo, y_hi) = _sampling_bounds(area)
     points: list[tuple[float, float]] = []
     for _ in range(max_attempts):
         candidate = (float(rng.uniform(x_lo, x_hi)), float(rng.uniform(y_lo, y_hi)))

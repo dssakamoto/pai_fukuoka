@@ -15,7 +15,8 @@ import numpy as np
 import pytest
 
 from so101_vlm.eval.eval_config import JudgeConfig
-from so101_vlm.eval.judge import JudgeReason, JudgeResult, judge_in_box
+from so101_vlm.eval.geometry import get_geometry
+from so101_vlm.eval.judge import JudgeReason, JudgeResult, judge_in_box, judge_in_region
 from so101_vlm.eval.scene_spec import SCENE_SPEC
 
 CFG = JudgeConfig(margin_m=0.0, speed_max_mps=0.01, settle_s=1.0)
@@ -158,3 +159,60 @@ def test_margin_shrinks_the_inner_region():
     assert judge(centre).success is True  # 【確認内容】: margin 0 なら内側
     tight = dataclasses.replace(CFG, margin_m=0.005)
     assert judge(centre, config=tight).reasons == (JudgeReason.OUTSIDE_INNER,)  # 【確認内容】: 0.035 未満が必要
+
+
+# =============================================================== judge_in_region (SGT-004)
+def _region(dx=0.0, dy=0.0):
+    c = get_geometry().box_default_xy
+    return get_geometry().place_region((c[0] + dx, c[1] + dy))
+
+
+def test_region_follows_a_moved_box():
+    """SGT-004 箱を +0.05 ずらした領域: ずらした中心なら成功、元の位置だと OUTSIDE_INNER 🔵"""
+    moved = _region(dx=0.05)
+    cx, cy = moved.center_xy
+    assert judge_in_region((cx, cy, 0.02), STILL, CFG, moved).success is True
+    old = get_geometry().box_default_xy
+    r = judge_in_region((old[0], old[1], 0.02), STILL, CFG, moved)
+    assert r.reasons == (JudgeReason.OUTSIDE_INNER,) and r.offset_xy[0] == pytest.approx(-0.05)
+
+
+def test_region_boundary_with_margin_is_exact_then_one_mm_out_fails():
+    """SGT-004 内寸の境界 (margin 込み) の 1 mm 内側は成功、1 mm 外は OUTSIDE_INNER 🔵"""
+    region = _region()
+    cfg = dataclasses.replace(CFG, margin_m=0.005)
+    limit = region.inner_half_size - cfg.margin_m
+    cx, cy = region.center_xy
+    assert judge_in_region((cx + limit - 0.001, cy, 0.02), STILL, cfg, region).success is True
+    assert judge_in_region((cx + limit + 0.001, cy, 0.02), STILL, cfg, region).reasons == (JudgeReason.OUTSIDE_INNER,)
+
+
+def test_region_height_and_speed():
+    """SGT-004 縁未満は成功、縁以上は ABOVE_RIM、速さ超過は MOVING 🔵"""
+    region = _region()
+    cx, cy = region.center_xy
+    assert judge_in_region((cx, cy, region.rim_z - 0.001), STILL, CFG, region).success is True
+    assert judge_in_region((cx, cy, region.rim_z), STILL, CFG, region).reasons == (JudgeReason.ABOVE_RIM,)
+    assert judge_in_region((cx, cy, 0.02), (0.05, 0.0, 0.0), CFG, region).reasons == (JudgeReason.MOVING,)
+
+
+def test_region_does_not_mutate_inputs():
+    """SGT-004 入力の配列を変更しない 🔵"""
+    region = _region()
+    centre = np.array([*region.center_xy, 0.02])
+    vel = np.zeros(3)
+    c0, v0 = centre.copy(), vel.copy()
+    judge_in_region(centre, vel, CFG, region)
+    assert np.array_equal(centre, c0) and np.array_equal(vel, v0)
+
+
+def test_region_invalid_region_raises_value_error():
+    with pytest.raises(ValueError):
+        judge_in_region((0.2, 0.19, 0.02), STILL, CFG, object())
+
+
+def test_judge_in_box_equals_judge_in_region_for_the_default_region():
+    """SGT-004 互換の別名 judge_in_box が、既定の領域の judge_in_region と同じ結果 🔵"""
+    region = get_geometry().place_region()
+    for centre, vel in [((0.20, 0.19, 0.02), STILL), ((0.30, 0.19, 0.02), STILL), ((0.2, 0.19, 0.2), (0.1, 0, 0))]:
+        assert judge_in_box(centre, vel, CFG) == judge_in_region(centre, vel, CFG, region)

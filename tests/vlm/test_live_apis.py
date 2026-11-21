@@ -13,7 +13,7 @@ from so101_vlm.env import load_dotenv
 
 load_dotenv()  # .env にキーがあれば使う (値は表示しない)
 
-PROVIDERS = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY"}
+PROVIDERS = {"anthropic": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY", "ollama": None}  # ollama はキー不要
 MAX_CENTRE_ERROR_PX = 40  # 検出枠の中心と、真のブロックの中心の差の許容 [px]。VLM の枠はゆるい (暫定。実測後に見直す)
 
 
@@ -38,8 +38,26 @@ def scene_image():
     return rgb, truth
 
 
+def _ollama_ready() -> bool:
+    """ローカルの Ollama が応答し、設定のモデルが取得済みか (/api/tags)。"""
+    import json
+    import urllib.request
+
+    from so101_vlm.vlm.config import load_vlm_config
+
+    pc = load_vlm_config().providers["ollama"]
+    try:
+        url = f"{str(pc.options.get('base_url', 'http://localhost:11434')).rstrip('/')}/api/tags"
+        with urllib.request.build_opener(urllib.request.ProxyHandler({})).open(url, timeout=2) as r:
+            return pc.model in {m.get("name") for m in json.loads(r.read()).get("models", [])}
+    except Exception:  # noqa: BLE001  起動していない・通信できない = 使えない
+        return False
+
+
 def _needs_key(name: str):
     """キーがなければ、描画の fixture を作る前に (収集時に) スキップする。"""
+    if name == "ollama":  # キーの代わりに、Ollama が起動していてモデルが取得済みかを見る
+        return pytest.param(name, marks=pytest.mark.skipif(not _ollama_ready(), reason="Ollama が起動していない、またはモデル未取得 (スキップ。レポートでは『未評価』)"))
     missing = not os.environ.get(PROVIDERS[name], "").strip()
     return pytest.param(name, marks=pytest.mark.skipif(missing, reason=f"{PROVIDERS[name]} が未設定 (実 API のテストはスキップ。レポートでは『未評価』)"))
 

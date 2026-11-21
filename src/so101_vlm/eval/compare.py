@@ -1,7 +1,7 @@
 """プロバイダ別の評価と比較表 (TASK-0029)。
 
 🔵 AC-01 / AC-04 / AC-05: 同じシード・同じ色の並び・同じ指示で各プロバイダを評価し、成功率と検出誤差 (mm) を表にする。
-API キーのないプロバイダ・クライアントが未実装のプロバイダは「未評価」(評価しない)、評価の途中で想定外の例外が出たプロバイダは
+API キーのないプロバイダ・クライアントが未実装のプロバイダ・使えないプロバイダ (Ollama が未起動など) は「未評価」(評価しない)、評価の途中で想定外の例外が出たプロバイダは
 「中断」(途中までの記録は残す) にして、他のプロバイダの評価は続ける。KeyboardInterrupt は握りつぶさない。
 oracle (真の配置から作る偽 VLM) は「参考」の行で、AC-01 の判定には含めない。
 検出誤差 = VLM の出力から算出した 3 次元位置 (ブロック中心の推定) と、sim の真のブロック中心の距離 [mm]。
@@ -30,6 +30,10 @@ from so101_vlm.eval.trial import run_trial
 from so101_vlm.perception.calibration import Calibration, load_calibration
 from so101_vlm.vlm import MissingApiKeyError, create_client
 from so101_vlm.vlm.config import load_vlm_config
+
+class ProviderUnavailableError(RuntimeError):
+    """【機能概要】: プロバイダが今は使えない (ローカルのサーバが未起動、モデル未取得など)。評価は「未評価」にする 🔵"""
+
 
 ClientFactoryFor = Callable[[str], Callable[[int, str], object]]
 EVALUATED, NOT_EVALUATED, ABORTED = "evaluated", "not_evaluated", "aborted"
@@ -94,6 +98,12 @@ def default_client_factory_for(calibration: Calibration | None = None) -> Client
     def factory_for(name: str) -> Callable[[int, str], object]:
         if name == "oracle":
             return oracle_client_factory(cal)
+        if name == "ollama":  # キーがない代わりに、起動とモデルの取得を確かめる。使えなければ「未評価」(0% と誤解させない)
+            from so101_vlm.vlm.ollama_client import unavailable_reason
+
+            reason = unavailable_reason(config.providers["ollama"])
+            if reason is not None:
+                raise ProviderUnavailableError(reason)
         client = create_client(config, name)
         return lambda seed, colour: client
 
@@ -126,6 +136,8 @@ def evaluate_provider(
         return _result(name, NOT_EVALUATED, str(exc), [], model_hint, reference)
     except NotImplementedError as exc:
         return _result(name, NOT_EVALUATED, f"クライアント未実装: {exc}", [], model_hint, reference)
+    except ProviderUnavailableError as exc:
+        return _result(name, NOT_EVALUATED, f"利用できません: {exc}", [], model_hint, reference)
     records: list[TrialRecord] = []
 
     def collect(done: int, total: int, record: TrialRecord) -> None:

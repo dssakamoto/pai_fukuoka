@@ -8,7 +8,7 @@ from pathlib import Path
 
 import yaml
 
-from so101_vlm.eval.scene_spec import SCENE_SPEC
+from so101_vlm.eval.geometry import get_geometry
 from so101_vlm.eval.validation import (
     require_area,
     require_exact_keys,
@@ -63,9 +63,9 @@ class JudgeConfig:
 
     def __post_init__(self) -> None:
         margin = require_number("margin_m", self.margin_m)
-        if not 0 <= margin < SCENE_SPEC.box_inner_half_size:
+        if not 0 <= margin < get_geometry().box_inner_half_size:
             raise ValueError(
-                f"margin_m は 0 以上 {SCENE_SPEC.box_inner_half_size} 未満で指定してください: margin_m={self.margin_m!r}"
+                f"margin_m は 0 以上 {get_geometry().box_inner_half_size} 未満で指定してください: margin_m={self.margin_m!r}"
             )
         settle = require_number("settle_s", self.settle_s)
         if settle < 0:

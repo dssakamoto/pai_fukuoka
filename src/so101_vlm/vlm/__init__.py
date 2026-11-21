@@ -1,6 +1,6 @@
 """VLM クライアント (TASK-0016〜0022)。create_client で設定のプロバイダから生成する。
 
-プロバイダ実装は register_provider でファクトリを登録する (anthropic / openai / gemini は、このファイルの末尾で登録済み。Ollama は TASK-0022)。
+プロバイダ実装は register_provider でファクトリを登録する (anthropic / openai / gemini / ollama は、このファイルの末尾で登録済み)。
 ファクトリは (ProviderConfig, api_key | None) -> トランスポート を返す (base.py 参照)。
 """
 
@@ -81,5 +81,5 @@ def _builtin(provider: str) -> Factory:
     return factory
 
 
-for _provider in ("anthropic", "openai", "gemini"):
+for _provider in ("anthropic", "openai", "gemini", "ollama"):
     register_provider(_provider, _builtin(_provider))
