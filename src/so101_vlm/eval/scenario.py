@@ -23,6 +23,9 @@ from so101_vlm.eval.reachable import ReachableRegion, load_reachable_region
 from so101_vlm.eval.validation import require_area, require_int, require_min_gap
 from so101_vlm.validation import require_number
 
+OUTLINE_EPS_M = 1e-5  # 外周の判定の余裕 [m] (格子の中間点での判定を外側に固定する。座標の丸め 5e-7 より大きい)
+
+
 @dataclass(frozen=True)
 class Fixed:
     """【機能概要】: 箱を固定位置に置く。xy が None なら XML の既定位置 🔵"""
@@ -135,6 +138,31 @@ def _outline_points(cx: float, cy: float, half: float, step: float) -> list[tupl
     return points
 
 
+def box_outline_fits(
+    region: ReachableRegion, center_xy: tuple[float, float], geometry: SceneGeometry, margin: float = 0.0
+) -> bool:
+    """【機能概要】: 箱 (中心 center_xy) の外周 (内寸 + 壁 + margin) が、全部到達可能領域の内側か 🟡 (UniformXY と掃引が共有)
+
+    外周に OUTLINE_EPS_M を足す: 外周 (半幅 0.045) は 1 cm 格子の中間点に当たり、丸めの向きが浮動小数点の誤差 (座標を丸めただけ) で
+    割れる。境界を常に外側の格子点で判定する (保守的)。
+    """
+    outer = geometry.box_inner_half_size + geometry.box_wall_thickness + margin + OUTLINE_EPS_M
+    return all(region.contains_xy(px, py) for px, py in _outline_points(center_xy[0], center_xy[1], outer, region.step))
+
+
+def box_clear_of_blocks(
+    blocks: tuple[tuple[float, float], ...],
+    center_xy: tuple[float, float],
+    geometry: SceneGeometry,
+    block_gap: float,
+    margin: float = 0.0,
+) -> bool:
+    """【機能概要】: 箱の外周とブロックの縁の間隔が、どのブロックとも block_gap 以上か (正方形どうしの最大座標差で測る = 保守的) 🟡"""
+    outer = geometry.box_inner_half_size + geometry.box_wall_thickness + margin
+    clearance = outer + geometry.block_half_size + block_gap
+    return all(max(abs(center_xy[0] - bx), abs(center_xy[1] - by)) >= clearance for bx, by in blocks)
+
+
 def _sample_box(
     rng: np.random.Generator,
     box: UniformXY,
@@ -158,12 +186,11 @@ def _sample_box(
         raise ValueError(
             f"到達可能領域 (x {xl:.3f}〜{xh:.3f}, y {yl:.3f}〜{yh:.3f}) が、箱の外周 (半幅 {outer:.3f}) を置くには狭すぎます"
         )
-    clearance = outer + g.block_half_size + box.block_gap
     for _ in range(max_attempts):
         cx, cy = float(rng.uniform(x_lo, x_hi)), float(rng.uniform(y_lo, y_hi))
-        if any(max(abs(cx - bx), abs(cy - by)) < clearance for bx, by in blocks):
+        if not box_clear_of_blocks(blocks, (cx, cy), g, box.block_gap, box.margin):
             continue
-        if all(region.contains_xy(px, py) for px, py in _outline_points(cx, cy, outer, region.step)):
+        if box_outline_fits(region, (cx, cy), g, box.margin):
             return (cx, cy)
     raise ValueError(
         f"箱の位置が見つかりません: 試行 {max_attempts} 回で、到達可能領域に収まり、ブロックと {box.block_gap} m 以上離れる位置が出ませんでした"

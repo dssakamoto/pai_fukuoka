@@ -41,7 +41,7 @@
 - [ ] [SGT-009: 到達可能領域を IK 格子で計算して保存し、読み込めるようにする](SGT-009.md) - 3h (TDD) 🟡 ✅ 実装済み (2026-11-21。configs/reachable.yaml は GitHub Actions の一時ワークフローで、実際の IkPolicy の計画から生成。CI で確認中)
 - [ ] [SGT-010: 箱位置の UniformXY 生成と到達可能性による棄却を実装する](SGT-010.md) - 3h (TDD) 🔵 ✅ 実装済み (2026-11-21。G1 は (b): 箱だけ領域で棄却。箱とブロックの間隔は block_gap 0.03。CI で確認中。下記「実測で分かったこと」参照)
 - [x] [SGT-011: 障害物 geom をモデルから自動収集する](SGT-011.md) - 2h (TDD) 🔵 ✅ 実装済み (2026-11-22。CI で確認中。motion.yaml は明示の一覧のまま、`obstacle_geoms: auto` で自動に切り替えられる移行形)
-- [ ] [SGT-012: 箱位置の掃引(3x3 格子 x oracle)スクリプトを追加する](SGT-012.md) - 2h (DIRECT) 🟡
+- [ ] [SGT-012: 箱位置の掃引(3x3 格子 x oracle)スクリプトを追加する](SGT-012.md) - 2h (DIRECT) 🟡 🟡 一部完了 (2026-11-22。scripts/sweep_box.py・テストは実装済み。掃引の実行(描画が要る)と docs/notes/box-sweep.md は未了)
 - [ ] [SGT-013: SCENE_SPEC の箱位置・作業範囲を削除し、再現性を最終確認する](SGT-013.md) - 2h (DIRECT) 🔵
 - [ ] [SGT-014: 実 API(OpenAI)で箱位置を変えた再評価を確認する(任意)](SGT-014.md) - 1h (DIRECT) 🟡
 

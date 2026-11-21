@@ -20,7 +20,7 @@ from so101_vlm.eval.failure import FAILURE_GROUP, FailureKind
 from so101_vlm.eval.fixed_pick import COLOUR_TO_BODY
 from so101_vlm.eval.geometry import get_geometry
 from so101_vlm.eval.ground_truth import GroundTruth
-from so101_vlm.eval.scenario import scenario_for
+from so101_vlm.eval.scenario import BoxSpec, scenario_for
 from so101_vlm.eval.oracle_vlm import OracleVlm
 from so101_vlm.eval.trial import TrialOutcome, run_trial
 from so101_vlm.eval.validation import require_int
@@ -90,13 +90,18 @@ def record_from_outcome(
     )  # fmt: skip
 
 
-def oracle_client_factory(calibration: Calibration | None = None) -> Callable[[int, str], OracleVlm]:
-    """【機能概要】: 試行ごとに、その配置の真値から枠を作る偽 VLM (API キー不要) を返すファクトリ 🟡"""
+def oracle_client_factory(
+    calibration: Calibration | None = None, box: BoxSpec | None = None
+) -> Callable[[int, str], OracleVlm]:
+    """【機能概要】: 試行ごとに、その配置の真値から枠を作る偽 VLM (API キー不要) を返すファクトリ 🟡
+
+    box: 箱の位置の指定 (省略時は既定の箱 = 従来どおり)。run_trial に渡す scenario と同じ box を指定する (SGT-012)。
+    """
     cal = load_calibration() if calibration is None else calibration
     place = load_eval_config().placement
 
     def client_for(seed: int, colour: str) -> OracleVlm:
-        truth = GroundTruth(scenario_for(seed, place), get_geometry())
+        truth = GroundTruth(scenario_for(seed, place, box), get_geometry())
         return OracleVlm(truth.layout, colour, cal, truth.place_region)
 
     return client_for
