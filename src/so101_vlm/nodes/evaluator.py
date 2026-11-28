@@ -1,7 +1,7 @@
 """task / evaluator / recorder ノード (TASK-0025)。
 
 🔵 evaluator: sim の真値 (world) で成功判定し、失敗を分類する。判定・分類は run_trial / run_goal と同じライブラリ
-(judge_in_box / PickTracker / classify_failure) を使う。result を出したら stop を全ノードに送って終わる。
+(judge_in_region / PickTracker / classify_failure) を使う。result を出したら stop を全ノードに送って終わる。
 入力は到着順が保証されないので、必要なものが揃うまで溜めて、揃ったら進める (dora でも、ローカルランナーでも同じ)。
 recorder: 試行の記録 (JSON)。🟡 LeRobot 形式での記録は TASK-0027 で、この位置に差し替える。
 """
@@ -14,7 +14,9 @@ import numpy as np
 from so101_vlm.eval.eval_config import load_eval_config
 from so101_vlm.eval.failure import classify_failure
 from so101_vlm.eval.fixed_pick import COLOUR_TO_BODY
-from so101_vlm.eval.judge import judge_in_box
+from so101_vlm.eval.geometry import get_geometry
+from so101_vlm.eval.ground_truth import GroundTruth
+from so101_vlm.eval.judge import judge_in_region
 from so101_vlm.eval.pick_tracker import PickTracker, block_linear_velocity
 from so101_vlm.nodes.base import NodeBase
 from so101_vlm.nodes.node_config import NodeConfig
@@ -147,7 +149,8 @@ class EvaluatorNode(NodeBase):
     def _executed_result(self) -> dict:
         model, data = self._sim.mujoco_handles()
         body_id = int(model.body(COLOUR_TO_BODY[self._task.colour]).id)  # type: ignore[union-attr]
-        judge = judge_in_box(data.xpos[body_id], block_linear_velocity(model, data, body_id), self._eval.judge)
+        region = GroundTruth(self._task.scenario(), get_geometry()).place_region  # type: ignore[union-attr]
+        judge = judge_in_region(data.xpos[body_id], block_linear_velocity(model, data, body_id), self._eval.judge, region)
         trace = self._tracker.finish()  # type: ignore[union-attr]
         kind = classify_failure(trace, judge, self._eval.failure)
         out = self._base_result()

@@ -22,7 +22,9 @@ from so101_vlm.eval.fixed_pick import (
     load_run_configs,
     run_goal,
 )
-from so101_vlm.eval.layout import place_blocks, sample_layout
+from so101_vlm.eval.geometry import SceneGeometry, get_geometry
+from so101_vlm.eval.ground_truth import GroundTruth
+from so101_vlm.eval.scenario import Scenario, apply_scenario, scenario_for
 from so101_vlm.eval.scene_spec import SCENE_SPEC
 from so101_vlm.eval.validation import require_int
 from so101_vlm.nodes.camera import render_rgbd
@@ -78,12 +80,15 @@ def _failed(seed, colour, instruction, kind, error, vlm_time_s, plan=None) -> Tr
 
 
 # 🟡 Intent: 深度は上面を見ているので、ブロック中心は表面の点から半辺ぶん下 (projection.bbox_to_base_point の注記)。
-#    箱の位置は v1 では固定なので、置く高さは底板の上面 (SCENE_SPEC) を使い、xy だけ検出から求める。
-def estimate_goal(plan: PlanResult, depth: np.ndarray, cal: Calibration, instruction: str) -> Goal:
+#    置く高さは形状 (SceneGeometry。XML 由来) の底板の上面を使い、xy だけ検出から求める (SGT-007)。箱を動かしても z は変わらない。
+def estimate_goal(
+    plan: PlanResult, depth: np.ndarray, cal: Calibration, instruction: str, geometry: SceneGeometry | None = None
+) -> Goal:
+    g = get_geometry() if geometry is None else geometry
     pick = bbox_to_base_point(plan.pick.bbox_px, depth, cal.camera, cal.T_base_cam)
-    pick[2] -= SCENE_SPEC.block_half_size
+    pick[2] -= g.block_half_size
     place = bbox_to_base_point(plan.place.bbox_px, depth, cal.camera, cal.T_base_cam)
-    place[2] = SCENE_SPEC.box_floor_top_z
+    place[2] = g.box_floor_top_z
     return Goal(pick_target_base=pick, place_target_base=place, instruction=instruction)
 
 
@@ -100,6 +105,7 @@ def run_trial(
     trajectory_config: TrajectoryConfig | None = None,
     frame_sink: FrameSink | None = None,
     start_sink: StartSink | None = None,
+    scenario: Scenario | None = None,
 ) -> TrialOutcome:
     """【機能概要】: seed の配置を撮影し、VLM の検出から colour のブロックを箱に入れる 1 試行を実行する 🔵
 
@@ -108,6 +114,7 @@ def run_trial(
     記録し、動かさない。それ以外の例外 (認証エラーなど) は握りつぶさずそのまま上に出す。
     start_sink(model, data) は配置と撮影の直後に 1 回、frame_sink は run_goal の毎周期に呼ぶ (動かない試行では呼ばれない)。
     不正な seed / colour / instruction は、何かを始める前に ValueError。
+    scenario を渡すと、その配置 (箱の位置を含む) で行う。省略時は seed から作る (箱は既定の位置 = 従来どおり)。判定は、その試行の箱の領域で行う。
     """
     seed = require_int("seed", seed, 0)
     if not isinstance(colour, str) or colour not in COLOUR_TO_BODY:
@@ -116,12 +123,17 @@ def run_trial(
         raise ValueError("instruction は空でない文字列で指定してください")
     configs = load_run_configs(eval_config, safety_config, trajectory_config)
     cal = load_calibration() if calibration is None else calibration
-    place = configs.eval.placement
+    if scenario is None:
+        scenario = scenario_for(seed, configs.eval.placement)
+    elif not isinstance(scenario, Scenario):
+        raise ValueError(f"scenario は Scenario で指定してください: {scenario!r}")
+    geometry = get_geometry()
     with SimRobot(scene_path) as robot:
         model, data = robot.mujoco_handles()
-        place_blocks(model, data, sample_layout(seed, place.n_blocks, place.area, place.min_gap, place.max_attempts))
+        apply_scenario(model, data, scenario)  # 箱は IkPolicy の構築と撮影より前に動かす (FR-010)
         rgb, depth = render_rgbd(model, data, SCENE_SPEC.camera_name, cal.camera.width, cal.camera.height)
-        truth = np.array(data.xpos[model.body(COLOUR_TO_BODY[colour]).id])
+        truth = np.array(GroundTruth.from_sim(scenario, geometry, model, data).block_xyz(colour))
+        region = GroundTruth(scenario, geometry).place_region
         if start_sink is not None:
             start_sink(model, data)
         started = time.perf_counter()
@@ -131,10 +143,10 @@ def run_trial(
             return _failed(seed, colour, instruction, FailureKind.VLM_FAILURE, str(exc), time.perf_counter() - started)
         vlm_time_s = time.perf_counter() - started
         try:
-            goal = estimate_goal(plan, depth, cal, instruction)
+            goal = estimate_goal(plan, depth, cal, instruction, geometry)
         except ValueError as exc:
             return _failed(seed, colour, instruction, FailureKind.PERCEPTION_FAILURE, str(exc), vlm_time_s, plan)
-        run = run_goal(robot, goal, seed=seed, colour=colour, configs=configs, frame_sink=frame_sink)
+        run = run_goal(robot, goal, seed=seed, colour=colour, configs=configs, frame_sink=frame_sink, region=region)
     return TrialOutcome(
         seed=seed, colour=colour, instruction=instruction, plan=plan,
         pick_estimate=tuple(float(v) for v in goal.pick_target_base),

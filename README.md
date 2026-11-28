@@ -170,7 +170,8 @@ assets/        シーン(scene_pickplace.xml)と SO-101 のモデル(assets/so10
 configs/       設定  scripts/ コマンド  tests/ 単体・統合テスト  docs/ 要件・設計・タスク・ノート
 ```
 
-寸法・名前の単一の情報源は `src/so101_vlm/eval/scene_spec.py`(箱の内寸・縁の高さ、作業エリア、カメラ名)。シーンは `scene_pickplace.xml` が `so101_new_calib.xml` を include して作る(上流の `assets/so101/` は改変しない)。
+寸法・名前の単一の情報源は `src/so101_vlm/eval/scene_spec.py`(箱の内寸・縁の高さ、カメラ名。値は `assets/scene_pickplace.xml` から `eval/geometry.py` が読む)。
+**箱の位置は定数ではなく、試行ごとの `Scenario`(`eval/scenario.py`)で決まる**。既定は XML の位置に固定(`Fixed`。ブロックの配置・乱数・評価結果は従来と同じ)で、`UniformXY` を指定すると、到達可能領域(`configs/reachable.yaml`。`scripts/compute_reachable.py` で一度だけ計算)の内側から箱の位置を引く。真値(ブロック・箱の位置)は `GroundTruth`(`eval/ground_truth.py`)経由でだけ得て、方策(`policy/`・`perception/`)には渡さない。ブロックを置く領域(20 cm 四方)は `eval/validation.py` の `BLOCK_AREA_X` / `BLOCK_AREA_Y`。箱位置を動かした評価は `scripts/sweep_box.py`(結果は [docs/notes/box-sweep.md](docs/notes/box-sweep.md))。シーンは `scene_pickplace.xml` が `so101_new_calib.xml` を include して作る(上流の `assets/so101/` は改変しない)。
 
 ## ドキュメント
 

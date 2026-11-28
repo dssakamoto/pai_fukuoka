@@ -11,6 +11,8 @@ import inspect
 import pytest
 import yaml
 
+from so101_vlm.eval.validation import BLOCK_AREA_X, BLOCK_AREA_Y
+from so101_vlm.eval.geometry import get_geometry
 from so101_vlm.eval.scene_spec import SCENE_SPEC
 from so101_vlm.robot.model_paths import REPO_ROOT
 from so101_vlm.safety import config as config_module
@@ -347,8 +349,8 @@ def test_default_workspace_margins(task_points):
 def test_workspace_contains_scene_work_area_corners():
     """TC-WC-03 scene_spec の作業範囲の 4 隅 x z in {0.0, 0.17} 🟡"""
     box = load_safety_config().workspace
-    for x in SCENE_SPEC.work_area_x:
-        for y in SCENE_SPEC.work_area_y:
+    for x in BLOCK_AREA_X:
+        for y in BLOCK_AREA_Y:
             for z in (0.0, 0.17):
                 assert is_in_workspace((x, y, z), box)
 
@@ -356,7 +358,7 @@ def test_workspace_contains_scene_work_area_corners():
 def test_workspace_contains_box_corners():
     """TC-WC-04 箱の内寸の四隅 x z in {box_rim_z, 0.14} 🟡"""
     box = load_safety_config().workspace
-    bx, by = SCENE_SPEC.box_center_xy
+    bx, by = get_geometry().box_default_xy
     h = SCENE_SPEC.box_inner_half_size
     for sx in (-1, 1):
         for sy in (-1, 1):

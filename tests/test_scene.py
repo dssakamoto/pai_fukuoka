@@ -4,6 +4,8 @@ import mujoco
 import numpy as np
 import pytest
 
+from so101_vlm.eval.validation import BLOCK_AREA_X, BLOCK_AREA_Y
+from so101_vlm.eval.geometry import get_geometry
 from so101_vlm.eval.scene_spec import SCENE_SPEC as SPEC
 from so101_vlm.nodes.camera import render_rgbd
 from so101_vlm.robot.model_paths import PICKPLACE_SCENE_PATH, SO101_SCENE_PATH
@@ -69,8 +71,8 @@ def test_block_rests_on_floor(settled, name):
 @pytest.mark.parametrize("name", SPEC.block_names)
 def test_block_initial_position_in_work_area(settled, name):
     x, y = settled[1].xpos[_body_id(settled[0], name)][:2]
-    assert SPEC.work_area_x[0] <= x <= SPEC.work_area_x[1]
-    assert SPEC.work_area_y[0] <= y <= SPEC.work_area_y[1]
+    assert BLOCK_AREA_X[0] <= x <= BLOCK_AREA_X[1]
+    assert BLOCK_AREA_Y[0] <= y <= BLOCK_AREA_Y[1]
 
 
 def test_blocks_are_at_least_5cm_apart(settled):
@@ -104,7 +106,7 @@ def test_block_visible_and_depth_matches(settled, rgbd, name):
 @pytest.mark.render
 def test_box_visible_and_depth_matches(settled, rgbd):
     model, data = settled
-    p = np.array([*SPEC.box_center_xy, SPEC.box_floor_top_z])
+    p = np.array([*get_geometry().box_default_xy, SPEC.box_floor_top_z])
     u, v, z = _project(model, data, p)
     ui, vi = round(u), round(v)
     assert 0 <= ui < SPEC.image_width and 0 <= vi < SPEC.image_height
@@ -114,7 +116,7 @@ def test_box_visible_and_depth_matches(settled, rgbd):
 def test_box_geometry_matches_spec(settled):
     model, data = settled
     bid = _body_id(model, SPEC.box_body_name)
-    assert data.xpos[bid][:2] == pytest.approx(SPEC.box_center_xy)
+    assert data.xpos[bid][:2] == pytest.approx(get_geometry().box_default_xy)
     geoms = {
         mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, g): g
         for g in range(model.ngeom)
@@ -123,7 +125,7 @@ def test_box_geometry_matches_spec(settled):
     t = SPEC.box_wall_thickness
     wall = geoms["box_wall_px"]
     # 壁の内面 = 中心 + 内側半寸、上端 = 縁の高さ
-    inner_face = data.geom_xpos[wall][0] - SPEC.box_center_xy[0] - model.geom_size[wall][0]
+    inner_face = data.geom_xpos[wall][0] - get_geometry().box_default_xy[0] - model.geom_size[wall][0]
     assert inner_face == pytest.approx(SPEC.box_inner_half_size)
     assert data.geom_xpos[wall][2] + model.geom_size[wall][2] == pytest.approx(SPEC.box_rim_z)
     assert 2 * model.geom_size[wall][0] == pytest.approx(t)
@@ -217,4 +219,4 @@ def test_xml_literals_match_geometry_and_spec(field):
 def test_xml_box_center_literal_matches_geometry_and_spec():
     """TC-SGT003-02 箱の中心が (0.20, 0.19) 🔵"""
     assert SceneGeometry.from_xml().box_default_xy == (0.20, 0.19)  # 【確認内容】: XML から
-    assert SPEC.box_center_xy == (0.20, 0.19)  # 【確認内容】: SPEC 側
+    assert not hasattr(SPEC, "box_center_xy")  # 【確認内容】: SPEC は箱の位置を持たない (試行ごとの Scenario。SGT-013)

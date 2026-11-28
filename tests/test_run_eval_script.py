@@ -91,3 +91,29 @@ def test_record_without_lerobot_is_an_actionable_error_and_leaves_nothing(script
     code = script.main(["--trials", "1", "--out-dir", str(tmp_path / "out"), "--run-id", "r", "--record-dir", str(tmp_path / "ds")])
     assert code == 2 and "uv sync --group record" in capsys.readouterr().err
     assert not (tmp_path / "ds").exists() and not (tmp_path / "out" / "r").exists()
+
+
+# =============================================================== --box-xy (SGT-014)
+@pytest.mark.parametrize("argv", [["--box-xy", "0.9", "0.9"], ["--box-xy", "0.0", "0.0"]])
+def test_box_xy_outside_the_region_exits_two_and_leaves_nothing(script, tmp_path, capsys, argv):
+    code = script.main(["--trials", "1", *argv, "--out-dir", str(tmp_path), "--run-id", "bx"])
+    assert code == 2 and "収まらず" in capsys.readouterr().err and not (tmp_path / "bx").exists()
+
+
+def test_box_xy_with_record_dir_is_refused(script, tmp_path, capsys):
+    code = script.main(["--trials", "1", "--box-xy", "0.20", "0.15", "--record-dir", str(tmp_path / "ds"), "--out-dir", str(tmp_path / "o"), "--run-id", "r"])
+    assert code == 2 and "併用できません" in capsys.readouterr().err and not (tmp_path / "o" / "r").exists()
+
+
+def test_a_paid_eval_with_box_xy_is_refused_without_confirmation(script, tmp_path, capsys, monkeypatch):
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False, raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy-key")
+    code = script.main(["--provider", "openai", "--trials", "3", "--box-xy", "0.20", "0.15", "--out-dir", str(tmp_path), "--run-id", "p"])
+    captured = capsys.readouterr()
+    assert code == 2 and "--yes" in captured.err and "3 回" in captured.out and not (tmp_path / "p").exists()
+
+
+@pytest.mark.render
+def test_oracle_eval_with_box_xy_runs_every_trial_on_the_moved_box(script, tmp_path, capsys):
+    code = script.main(["--trials", "2", "--seed", "2", "--box-xy", "0.20", "0.15", "--out-dir", str(tmp_path), "--run-id", "bx"])
+    assert code == 0 and (tmp_path / "bx" / "trials.csv").exists()

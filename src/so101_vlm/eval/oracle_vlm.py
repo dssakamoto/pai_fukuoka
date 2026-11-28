@@ -10,6 +10,7 @@ from itertools import product
 
 import numpy as np
 
+from so101_vlm.eval.geometry import PlaceRegion, get_geometry
 from so101_vlm.eval.scene_spec import SCENE_SPEC, SceneSpec
 from so101_vlm.perception.calibration import Calibration
 from so101_vlm.perception.projection import project_base_to_pixel
@@ -23,13 +24,14 @@ def _corners(cx: float, cy: float, half: float, z_lo: float, z_hi: float) -> lis
 
 
 class OracleVlm:
-    """【機能概要】: layout (ブロック中心 xy の列) と色から、pick / place の枠を作る 🟡"""
+    """【機能概要】: layout (ブロック中心 xy の列) と色、置き先の領域 (省略時は既定の箱) から、pick / place の枠を作る 🟡 (SGT-007)"""
 
     def __init__(
         self,
         layout: Sequence[tuple[float, float]],
         colour: str,
         calibration: Calibration,
+        place_region: PlaceRegion | None = None,
         spec: SceneSpec = SCENE_SPEC,
     ) -> None:
         if not isinstance(colour, str) or colour not in _COLOURS:
@@ -44,9 +46,13 @@ class OracleVlm:
         x, y = layout[_COLOURS.index(colour)]
         half = spec.block_half_size
         self._pick_corners = _corners(x, y, half, spec.block_rest_z - half, spec.block_rest_z + half)
-        bx, by = spec.box_center_xy
-        outer = spec.box_inner_half_size + spec.box_wall_thickness
-        self._place_corners = _corners(bx, by, outer, 0.0, spec.box_rim_z)
+        if place_region is None:  # 省略時は既定の箱 (XML の位置)
+            place_region = get_geometry().place_region()
+        elif not isinstance(place_region, PlaceRegion):
+            raise ValueError(f"place_region は PlaceRegion で指定してください: {place_region!r}")
+        bx, by = place_region.center_xy
+        outer = place_region.inner_half_size + spec.box_wall_thickness
+        self._place_corners = _corners(bx, by, outer, 0.0, place_region.rim_z)
 
     def _bbox(self, corners: list[tuple[float, float, float]]) -> tuple[int, int, int, int]:
         cam = self._cal.camera

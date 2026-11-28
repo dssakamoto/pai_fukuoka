@@ -8,6 +8,8 @@
 試行 i のシードは --seed + i、対象の色は --colours を順に回す。出力: results/<run-id>/trials.csv と summary.json
 (results/ は git 管理外)。run-id の既定は 日時-プロバイダ。1 試行ごとに CSV に追記するので、途中で止まっても記録は残る。
 --record-dir を付けると、動いた試行を LeRobot のデータセット (v3.0) にも記録する (uv sync --group record が必要)。
+--box-xy X Y で、全試行の箱を指定の位置に動かす (範囲外は動作前に理由つきで拒否、終了コード 2)。実 API を呼ぶ実行は、想定トークンと
+料金の目安を表示して確認する (--yes で確認を省く)。--record-dir とは併用できない。
 終了コード: 0 = 完了、1 = --min-success-rate を下回った、2 = 引数・設定・プロバイダの誤り (API キー未設定を含む)。
 """
 
@@ -18,6 +20,8 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from so101_vlm.eval.box_option import confirm_api_run, parse_box_xy
+from so101_vlm.eval.eval_config import load_eval_config
 from so101_vlm.eval.runner import (
     DEFAULT_COLOURS,
     DEFAULT_INSTRUCTION,
@@ -29,6 +33,7 @@ from so101_vlm.eval.runner import (
     summarize,
     write_summary,
 )
+from so101_vlm.eval.scenario import scenario_for
 from so101_vlm.eval.trial import run_trial
 from so101_vlm.perception.calibration import load_calibration
 from so101_vlm.record.lerobot_writer import LeRobotWriter
@@ -41,10 +46,10 @@ from so101_vlm.vlm.config import load_vlm_config
 DEFAULT_OUT_DIR = REPO_ROOT / "results"
 
 
-def _client_factory(provider: str):
-    """oracle は試行ごとに作る。それ以外は VlmClient を 1 つ作って使い回す (キャッシュ・再試行の設定を共有)。"""
+def _client_factory(provider: str, box=None):
+    """oracle は試行ごとに作る (box は箱の位置の指定)。それ以外は VlmClient を 1 つ作って使い回す (キャッシュ・再試行の設定を共有)。"""
     if provider == "oracle":
-        return oracle_client_factory(load_calibration())
+        return oracle_client_factory(load_calibration(), box)
     client = create_client(load_vlm_config(), provider)
     return lambda seed, colour: client
 
@@ -79,6 +84,8 @@ def main(argv: list[str] | None = None) -> int:
         "--record-dir", type=Path, default=None,
         help="動いた試行を LeRobot のデータセットとして記録する (新しいディレクトリ。要 uv sync --group record。1 試行 約 35 秒増える)",
     )
+    parser.add_argument("--box-xy", type=float, nargs=2, metavar=("X", "Y"), default=None, help="箱の位置 [m] (ワールド座標)。省略時は XML の位置")
+    parser.add_argument("--yes", action="store_true", help="実 API を呼ぶ実行の確認を省く (料金の目安は表示する)")
     parser.add_argument("--min-success-rate", type=float, default=None, help="下回ったら終了コード 1 (例: 0.7)")
     args = parser.parse_args(argv)
     load_dotenv()  # API キーを .env から (既存の環境変数は上書きしない。値は表示しない)
@@ -96,10 +103,22 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     records: list[TrialRecord] = []
     try:
-        factory = _client_factory(args.provider)
+        box = parse_box_xy(args.box_xy)  # 動作の前に検証する (範囲外は理由つきで拒否)
+        if box is not None and args.record_dir is not None:
+            raise ValueError("--box-xy と --record-dir は併用できません (記録の経路は箱の位置の指定に未対応)")
+        if box is not None and not confirm_api_run(args.provider, args.trials, yes=args.yes):
+            print("中止しました (API は呼んでいません)", file=sys.stderr)
+            return 2
+        factory = _client_factory(args.provider, box)
         with contextlib.ExitStack() as stack:
             csv_out = stack.enter_context(TrialCsv(out / "trials.csv"))
             trial_fn = run_trial
+            if box is not None:  # 試行ごとの seed で、同じ箱の位置の Scenario を作る
+                placement = load_eval_config().placement
+
+                def trial_fn(seed, colour, instruction, vlm, **kw):  # noqa: F811
+                    return run_trial(seed, colour, instruction, vlm, scenario=scenario_for(seed, placement, box), **kw)
+
             if args.record_dir is not None:
                 writer = stack.enter_context(LeRobotWriter(args.record_dir))
                 trial_fn = functools.partial(record_trial, writer)

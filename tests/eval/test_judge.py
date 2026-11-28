@@ -1,4 +1,4 @@
-"""judge_in_box / JudgeResult / JudgeReason のテスト (TASK-0013, Red フェーズ)。
+"""judge_in_region / JudgeResult / JudgeReason のテスト (TASK-0013, Red フェーズ)。
 
 テストケース定義: docs/implements/so101-vlm-pickplace/TASK-0013/pick-testcases.md 4 節 (TC-JG-*)
 対象モジュール (まだ存在しない): so101_vlm.eval.judge, so101_vlm.eval.eval_config.JudgeConfig
@@ -15,21 +15,20 @@ import numpy as np
 import pytest
 
 from so101_vlm.eval.eval_config import JudgeConfig
-from so101_vlm.eval.geometry import get_geometry
-from so101_vlm.eval.judge import JudgeReason, JudgeResult, judge_in_box, judge_in_region
-from so101_vlm.eval.scene_spec import SCENE_SPEC
+from so101_vlm.eval.geometry import PlaceRegion, get_geometry
+from so101_vlm.eval.judge import JudgeReason, JudgeResult, judge_in_region
 
 CFG = JudgeConfig(margin_m=0.0, speed_max_mps=0.01, settle_s=1.0)
 # 【2 進で正確な箱】: 中心 (0.25, 0.125)、内寸の半幅 0.0625、縁 0.0625 (全て 2 のべき乗の和)
-SPEC_EXACT = dataclasses.replace(
-    SCENE_SPEC, box_center_xy=(0.25, 0.125), box_inner_half_size=0.0625, box_rim_z=0.0625
+SPEC_EXACT = PlaceRegion(  # 箱の領域 (名前は従来のまま)。底の上面は XML の値
+    center_xy=(0.25, 0.125), inner_half_size=0.0625, rim_z=0.0625, floor_top_z=get_geometry().box_floor_top_z
 )
 STILL = (0.0, 0.0, 0.0)
 NAN, INF = float("nan"), float("inf")
 
 
-def judge(centre, velocity=STILL, config=CFG, spec=SCENE_SPEC):
-    return judge_in_box(centre, velocity, config, spec)
+def judge(centre, velocity=STILL, config=CFG, region=None):
+    return judge_in_region(centre, velocity, config, get_geometry().place_region() if region is None else region)
 
 
 # =============================================================== 正常系
@@ -128,21 +127,21 @@ def test_invalid_config_raises_value_error(config):
 @pytest.mark.parametrize("axis", [0, 1], ids=["x", "y"])
 def test_exactly_inner_half_width_fails(axis):
     """TC-JG-B01 ちょうど内寸の半幅は失敗 (厳密な不等号) 🟡"""
-    cx, cy = SPEC_EXACT.box_center_xy
+    cx, cy = SPEC_EXACT.center_xy
     on_edge = [cx, cy, 0.03125]
-    on_edge[axis] += SPEC_EXACT.box_inner_half_size  # 【境界】: 0.3125 / 0.1875 は 2 進で正確
-    assert judge(on_edge, spec=SPEC_EXACT).reasons == (JudgeReason.OUTSIDE_INNER,)  # 【確認内容】: ちょうどは失敗
+    on_edge[axis] += SPEC_EXACT.inner_half_size  # 【境界】: 0.3125 / 0.1875 は 2 進で正確
+    assert judge(on_edge, region=SPEC_EXACT).reasons == (JudgeReason.OUTSIDE_INNER,)  # 【確認内容】: ちょうどは失敗
     inside = list(on_edge)
     inside[axis] = float(np.nextafter(on_edge[axis], 0.0))
-    assert judge(inside, spec=SPEC_EXACT).success is True  # 【確認内容】: 1 ulp 内側は成功
+    assert judge(inside, region=SPEC_EXACT).success is True  # 【確認内容】: 1 ulp 内側は成功
 
 
 def test_exactly_rim_height_fails():
     """TC-JG-B02 ちょうど縁は失敗 🟡"""
-    cx, cy = SPEC_EXACT.box_center_xy
-    assert judge((cx, cy, 0.0625), spec=SPEC_EXACT).reasons == (JudgeReason.ABOVE_RIM,)  # 【確認内容】: ちょうど
+    cx, cy = SPEC_EXACT.center_xy
+    assert judge((cx, cy, 0.0625), region=SPEC_EXACT).reasons == (JudgeReason.ABOVE_RIM,)  # 【確認内容】: ちょうど
     below = float(np.nextafter(0.0625, 0.0))
-    assert judge((cx, cy, below), spec=SPEC_EXACT).success is True  # 【確認内容】: 1 ulp 下は成功
+    assert judge((cx, cy, below), region=SPEC_EXACT).success is True  # 【確認内容】: 1 ulp 下は成功
 
 
 def test_exactly_speed_max_succeeds():
@@ -209,10 +208,3 @@ def test_region_does_not_mutate_inputs():
 def test_region_invalid_region_raises_value_error():
     with pytest.raises(ValueError):
         judge_in_region((0.2, 0.19, 0.02), STILL, CFG, object())
-
-
-def test_judge_in_box_equals_judge_in_region_for_the_default_region():
-    """SGT-004 互換の別名 judge_in_box が、既定の領域の judge_in_region と同じ結果 🔵"""
-    region = get_geometry().place_region()
-    for centre, vel in [((0.20, 0.19, 0.02), STILL), ((0.30, 0.19, 0.02), STILL), ((0.2, 0.19, 0.2), (0.1, 0, 0))]:
-        assert judge_in_box(centre, vel, CFG) == judge_in_region(centre, vel, CFG, region)

@@ -10,7 +10,7 @@ import mujoco
 import numpy as np
 
 from so101_vlm.eval.scene_spec import SCENE_SPEC
-from so101_vlm.eval.validation import require_area, require_int, require_min_gap
+from so101_vlm.eval.validation import BLOCK_AREA_X, BLOCK_AREA_Y, require_area, require_int, require_min_gap
 
 # 【定数定義】: freejoint の qpos / qvel の要素数 🔵
 FREE_QPOS_SIZE = 7
@@ -28,11 +28,11 @@ def _check_feasible(n: int, area: float, min_gap: float) -> None:
 
 
 def _sampling_bounds(area: float) -> tuple[tuple[float, float], tuple[float, float]]:
-    """【ヘルパー関数】: 作業範囲の中心を中心とする一辺 area の正方形の (x 範囲, y 範囲) を返す
-    【単一責任】: 領域計算のみ (乱数・検証は扱わない純粋関数)。範囲は SCENE_SPEC からのみ導く 🔵
+    """【ヘルパー関数】: ブロックを置く領域の中心を中心とする一辺 area の正方形の (x 範囲, y 範囲) を返す
+    【単一責任】: 領域計算のみ (乱数・検証は扱わない純粋関数)。範囲は validation の BLOCK_AREA_X / BLOCK_AREA_Y から導く 🔵
     """
-    cx = sum(SCENE_SPEC.work_area_x) / 2
-    cy = sum(SCENE_SPEC.work_area_y) / 2
+    cx = sum(BLOCK_AREA_X) / 2
+    cy = sum(BLOCK_AREA_Y) / 2
     half = area / 2
     return (cx - half, cx + half), (cy - half, cy + half)
 

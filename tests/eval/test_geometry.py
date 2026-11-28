@@ -272,13 +272,13 @@ def test_get_geometry_is_cached_and_equals_from_xml():
 
 # --- C7: scene_spec の別名化 -------------------------------------------------
 DERIVED = (
-    "block_names", "block_half_size", "block_rest_z", "box_center_xy", "box_inner_half_size",
+    "block_names", "block_half_size", "block_rest_z", "box_inner_half_size",
     "box_wall_thickness", "box_floor_top_z", "box_rim_z", "camera_name", "image_width", "image_height",
 )
 FIELD_ORDER = (
-    "block_names", "block_half_size", "block_rest_z", "box_body_name", "box_center_xy",
-    "box_inner_half_size", "box_wall_thickness", "box_floor_top_z", "box_rim_z", "work_area_x",
-    "work_area_y", "camera_name", "image_width", "image_height",
+    "block_names", "block_half_size", "block_rest_z", "box_body_name",
+    "box_inner_half_size", "box_wall_thickness", "box_floor_top_z", "box_rim_z",
+    "camera_name", "image_width", "image_height",
 )
 
 
@@ -286,8 +286,7 @@ def test_scene_spec_matches_geometry():
     """TC-GEO-29 SCENE_SPEC の各値は get_geometry() と等しい 🔵"""
     g = get_geometry()
     for name in DERIVED:
-        gname = "box_default_xy" if name == "box_center_xy" else name
-        assert getattr(SCENE_SPEC, name) == getattr(g, gname), name
+        assert getattr(SCENE_SPEC, name) == getattr(g, name), name
 
 
 def test_scene_spec_field_names_unchanged():

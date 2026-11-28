@@ -12,6 +12,7 @@ import mujoco
 import numpy as np
 import pytest
 
+from so101_vlm.eval.geometry import get_geometry
 from so101_vlm.eval.layout import place_blocks, sample_layout
 from so101_vlm.eval.scene_spec import SCENE_SPEC
 from so101_vlm.robot.model_paths import JOINT_NAMES, PICKPLACE_SCENE_PATH
@@ -251,7 +252,7 @@ def test_placed_blocks_clear_of_box_and_touch_only_floor(scene_model, settled_ru
     """TC-I-04 箱と交差せず、ブロックは床とだけ接触 (home 姿勢に限る) 🟡"""
     layout, _, data = settled_runs[seed]
     h = SCENE_SPEC.block_half_size
-    bx, by = SCENE_SPEC.box_center_xy
+    bx, by = get_geometry().box_default_xy
     outer = SCENE_SPEC.box_inner_half_size + SCENE_SPEC.box_wall_thickness
     for x, y in layout:  # 幾何: xy 外形が箱の外形と重ならない
         overlap_x = (x - h) < (bx + outer) and (x + h) > (bx - outer)

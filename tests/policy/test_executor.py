@@ -16,6 +16,7 @@ import numpy as np
 import pytest
 
 import so101_vlm.policy.executor as executor_module
+from so101_vlm.eval.geometry import get_geometry
 from so101_vlm.eval.layout import place_blocks, sample_layout
 from so101_vlm.eval.scene_spec import SCENE_SPEC
 from so101_vlm.policy import ik_policy
@@ -456,7 +457,7 @@ def seed0_run():
         model, data = robot.mujoco_handles()
         place_blocks(model, data, sample_layout(0))
         pick = data.xpos[model.body("block_red").id].copy()
-        box_x, box_y = SCENE_SPEC.box_center_xy
+        box_x, box_y = get_geometry().box_default_xy
         goal = Goal(pick, (box_x, box_y, SCENE_SPEC.box_floor_top_z))
         lower, upper = limits_from_model(model)
         safety = load_safety_config()

@@ -16,9 +16,11 @@ import numpy as np
 
 from so101_vlm.eval.eval_config import EvalConfig, load_eval_config
 from so101_vlm.eval.failure import FailureKind, PickTrace, classify_failure
-from so101_vlm.eval.judge import JudgeResult, judge_in_box
-from so101_vlm.eval.layout import place_blocks, sample_layout
+from so101_vlm.eval.geometry import PlaceRegion, get_geometry
+from so101_vlm.eval.ground_truth import GroundTruth
+from so101_vlm.eval.judge import JudgeResult, judge_in_region
 from so101_vlm.eval.pick_tracker import PickTracker, block_linear_velocity
+from so101_vlm.eval.scenario import Scenario, apply_scenario, scenario_for
 from so101_vlm.eval.scene_spec import SCENE_SPEC
 from so101_vlm.eval.validation import require_int
 from so101_vlm.policy.base import Goal, Observation
@@ -75,11 +77,10 @@ def _validate_args(seed: object, colour: object) -> tuple[int, str]:
     return checked_seed, colour
 
 
-def _place_goal(data: mujoco.MjData, model: mujoco.MjModel, body: str) -> Goal:
-    """【機能概要】: 真の位置 (data.xpos) と箱の底板の中心から Goal を作る 🔵 (TASK-0012 の D6)"""
+def _place_goal(data: mujoco.MjData, model: mujoco.MjModel, body: str, region: PlaceRegion) -> Goal:
+    """【機能概要】: 真の位置 (data.xpos) と、置き先の領域の底の中心から Goal を作る 🔵 (TASK-0012 の D6, SGT-007)"""
     pick = np.array(data.xpos[model.body(body).id])
-    place = (*SCENE_SPEC.box_center_xy, SCENE_SPEC.box_floor_top_z)
-    return Goal(pick_target_base=pick, place_target_base=np.array(place))
+    return Goal(pick_target_base=pick, place_target_base=np.array(region.goal_xyz))
 
 
 @dataclass(frozen=True)
@@ -126,9 +127,10 @@ def _execute(
 
 
 def _judge_block(
-    model: mujoco.MjModel, data: mujoco.MjData, body: str, eval_config: EvalConfig
+    model: mujoco.MjModel, data: mujoco.MjData, body: str, eval_config: EvalConfig,
+    region: PlaceRegion | None = None,
 ) -> JudgeResult:
-    """【機能概要】: 実行後のブロックを判定する 🔵
+    """【機能概要】: 実行後のブロックを判定する。region 省略時は既定の箱の領域 (従来どおり) 🔵
 
     【注意 (TASK-0015 へ引き継ぎ)】: data.xpos は mj_step が積分の前に計算した値なので、最後の mj_step の
     1 サブステップ分 (約 2 ms) だけ古い可能性がある。qvel は積分後の値。静止後は差が無視できるため
@@ -136,7 +138,8 @@ def _judge_block(
     """
     body_id = int(model.body(body).id)
     velocity = block_linear_velocity(model, data, body_id)
-    return judge_in_box(data.xpos[body_id], velocity, eval_config.judge)
+    region = get_geometry().place_region() if region is None else region
+    return judge_in_region(data.xpos[body_id], velocity, eval_config.judge, region)
 
 
 def _outcome_planning_failed(
@@ -172,12 +175,13 @@ def run_goal(
     colour: str,
     configs: RunConfigs,
     frame_sink: FrameSink | None = None,
+    region: PlaceRegion | None = None,
 ) -> FixedPickOutcome:
     """【機能概要】: 配置済みのシーンで、goal から 計画 -> 実行 -> 判定 -> 分類 を行う 🔵
 
     【実装方針】: 計画失敗は実行しない (frame_sink も呼ばない)。真の位置を使うか、知覚の推定を使うかは
     呼び出し側が goal で決める (run_fixed_pick: 真の位置、run_trial: VLM + 知覚の推定)。
-    判定は常に真のブロックの状態で行う。
+    判定は常に真のブロックの状態で行う。region は判定する置き先の領域 (箱を動かした試行ではその領域。省略時は既定の箱)。
     """
     model, data = robot.mujoco_handles()
     body = COLOUR_TO_BODY[colour]
@@ -185,7 +189,7 @@ def run_goal(
     if error is not None:
         return _outcome_planning_failed(seed, colour, goal, error, plan_time_s)
     execution, trace = _execute(robot, trajectory, body, configs, frame_sink)
-    judge = _judge_block(model, data, body, configs.eval)
+    judge = _judge_block(model, data, body, configs.eval, region)
     return FixedPickOutcome(
         seed=seed, colour=colour, pick_target=tuple(float(v) for v in goal.pick_target_base),
         planning_error=None, planning_waypoint=None, plan_time_s=plan_time_s,
@@ -204,20 +208,25 @@ def run_fixed_pick(
     safety_config: SafetyConfig | None = None,
     trajectory_config: TrajectoryConfig | None = None,
     frame_sink: FrameSink | None = None,
+    scenario: Scenario | None = None,
 ) -> FixedPickOutcome:
     """【機能概要】: seed の配置で colour のブロックを、真の位置から箱に入れる 1 試行を実行する 🔵
 
     【実装方針】: 手順は配置 -> 真の位置 -> run_goal。計画失敗は実行しない
     (frame_sink も呼ばない)。frame_sink(model, data, 周期の番号, 区間名) は毎周期 (待ちを含む)、
     追跡の更新の後に呼ぶ。不正な colour / seed は SimRobot を作る前に ValueError。
+    scenario を渡すと、その配置 (箱の位置を含む) で行う。省略時は seed から作る (箱は既定の位置 = 従来どおり)。
     """
     seed, colour = _validate_args(seed, colour)
     configs = load_run_configs(eval_config, safety_config, trajectory_config)
     body = COLOUR_TO_BODY[colour]
-    place = configs.eval.placement
+    if scenario is None:
+        scenario = scenario_for(seed, configs.eval.placement)
+    elif not isinstance(scenario, Scenario):
+        raise ValueError(f"scenario は Scenario で指定してください: {scenario!r}")
     with SimRobot(scene_path) as robot:
         model, data = robot.mujoco_handles()
-        layout = sample_layout(seed, place.n_blocks, place.area, place.min_gap, place.max_attempts)
-        place_blocks(model, data, layout)
-        goal = _place_goal(data, model, body)
-        return run_goal(robot, goal, seed=seed, colour=colour, configs=configs, frame_sink=frame_sink)
+        apply_scenario(model, data, scenario)  # 箱は IkPolicy の構築より前に動かす (FR-010)
+        region = GroundTruth(scenario, get_geometry()).place_region
+        goal = _place_goal(data, model, body, region)
+        return run_goal(robot, goal, seed=seed, colour=colour, configs=configs, frame_sink=frame_sink, region=region)

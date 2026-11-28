@@ -14,19 +14,16 @@ _G = get_geometry()
 
 @dataclass(frozen=True)
 class SceneSpec:
-    """【機能概要】: シーンの定数。XML から導く(work_area は移行期間のみリテラル)🟡"""
+    """【機能概要】: シーンの定数。XML から導く。箱の位置は持たない (試行ごとの Scenario。SGT-013) 🟡"""
 
     block_names: tuple[str, ...] = _G.block_names
     block_half_size: float = _G.block_half_size
     block_rest_z: float = _G.block_rest_z  # 床の上で静止したときのブロック中心の高さ
     box_body_name: str = BOX_BODY_NAME
-    box_center_xy: tuple[float, float] = _G.box_default_xy  # ワールド座標(SGT-013 で削除予定)
     box_inner_half_size: float = _G.box_inner_half_size
     box_wall_thickness: float = _G.box_wall_thickness
     box_floor_top_z: float = _G.box_floor_top_z  # 底板の上面
     box_rim_z: float = _G.box_rim_z  # 壁の上端(縁の高さ)
-    work_area_x: tuple[float, float] = (0.15, 0.35)  # 20 cm 四方(SGT-013 で削除予定。XML に無い)
-    work_area_y: tuple[float, float] = (-0.10, 0.10)
     camera_name: str = _G.camera_name
     image_width: int = _G.image_width
     image_height: int = _G.image_height
