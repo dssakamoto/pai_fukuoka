@@ -27,7 +27,7 @@ from so101_vlm.eval.runner import (
     summarize,
 )
 from so101_vlm.eval.scene_spec import SCENE_SPEC
-from so101_vlm.eval.video import compose_summary, make_style
+from so101_vlm.eval.video import compose_summary, make_style, vlm_label
 from so101_vlm.eval.video_clip import DEFAULT_FPS, VideoWriter, clip_trial, summary_lines
 from so101_vlm.perception.calibration import load_calibration
 from so101_vlm.env import load_dotenv
@@ -94,7 +94,10 @@ def main(argv: list[str] | None = None) -> int:
             )
             if not args.no_summary:
                 card = compose_summary(
-                    (SCENE_SPEC.image_height, SCENE_SPEC.image_width), summary_lines(summarize(records), style.lang), style
+                    (SCENE_SPEC.image_height, SCENE_SPEC.image_width), summary_lines(
+                        summarize(records), style.lang,
+                        vlm_label(records[0].provider, records[0].model, style.lang) if records else None,
+                    ), style,
                 )
                 for _ in range(round(SUMMARY_HOLD_S * DEFAULT_FPS)):
                     video.append(card)

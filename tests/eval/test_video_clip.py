@@ -123,3 +123,5 @@ def test_summary_lines():
     lines = summary_lines(summarize([rec(0, True), rec(1, True), rec(2, False, "planning_failure")]), "en")
     assert lines[0] == "Success rate: 66.7% (2/3)" and any("planning_failure" in x for x in lines)
     assert summary_lines(summarize([rec(0, True)]), "ja")[0] == "成功率: 100.0% (1/1)"
+    assert summary_lines(summarize([rec(0, True)]), "ja", "VLM: oracle(擬似)")[-1] == "VLM: oracle(擬似)"  # VLM の表示は最後の行
+    assert "VLM" not in " ".join(summary_lines(summarize([rec(0, True)]), "ja"))  # 渡さなければ出さない

@@ -165,6 +165,7 @@ class Overlay:
     result_ok: bool | None
     speed: int
     header_right: str | None
+    vlm_label: str | None = None  # どの VLM の検出か (oracle は擬似)。見る人が、偽の枠を本物の VLM の検出と誤解しないために出す
 
 
 @lru_cache(maxsize=32)
@@ -189,6 +190,19 @@ def _check_image(image: object) -> np.ndarray:
     return image
 
 
+def vlm_label(provider: object, model: object, lang: str) -> str | None:
+    """【機能概要】: 動画に出す VLM の表示 ("VLM: openai / gpt-6-luna")。oracle は偽 VLM (真の配置から作った枠) だと分かる表示にする 🔵
+
+    provider が無い (None・空) なら None (出さない)。model が無い・"unknown" なら省く。
+    """
+    if not isinstance(provider, str) or not provider:
+        return None
+    if provider == "oracle":
+        return "VLM: oracle(擬似)" if lang == "ja" else "VLM: oracle (simulated)"
+    tail = f" / {model}" if isinstance(model, str) and model and model != "unknown" else ""
+    return f"VLM: {provider}{tail}"
+
+
 def _draw_header(d: ImageDraw.ImageDraw, w: int, fs: int, font: ImageFont.ImageFont, ov: Overlay, style: VideoStyle) -> None:
     line = round(fs * 1.3)
     d.rectangle([0, 0, w, 2 * line + 6], fill=_HEADER_BG)
@@ -206,6 +220,10 @@ def _draw_header(d: ImageDraw.ImageDraw, w: int, fs: int, font: ImageFont.ImageF
         name = stage_label(stage, style.lang)
         d.text((x, line + 3), name, fill=_ACTIVE if stage == ov.stage else _DIM, font=font)
         x += d.textlength(name + " ", font=font)
+    if ov.vlm_label:  # 段階の表示の右側に、残りの幅に収まるように (収まらなければ末尾を切る)
+        text = _fit(d, ov.vlm_label, font, w - x - 18)
+        if text:
+            d.text((w - d.textlength(text, font=font) - 6, line + 3), text, fill=_TEXT, font=font)
 
 
 def _draw_bar(d: ImageDraw.ImageDraw, w: int, h: int, fs: int, font: ImageFont.ImageFont, ov: Overlay, style: VideoStyle) -> None:

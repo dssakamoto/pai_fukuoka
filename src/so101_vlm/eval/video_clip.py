@@ -23,6 +23,7 @@ from so101_vlm.eval.video import (
     plan_clip,
     result_label,
     validate_speed,
+    vlm_label,
 )
 from so101_vlm.record.sim_episode import keep_frame
 from so101_vlm.safety.config import load_safety_config
@@ -155,6 +156,7 @@ def clip_trial(
         collector.close()
     if collector.initial is None:
         raise RuntimeError("試行の最初の画像が撮れていません")
+    label = vlm_label(getattr(vlm, "provider", None), getattr(vlm, "model", None), style.lang)
     text = result_label(outcome.success, None if outcome.failure is None else outcome.failure.value, style.lang)
     for spec in plan_clip(
         collector.labels, fps=video.fps, hold_task_s=hold_task_s, hold_detect_s=hold_detect_s, hold_result_s=hold_result_s
@@ -164,19 +166,21 @@ def clip_trial(
         overlay = Overlay(
             instruction=instruction, stage=spec.stage, phase=spec.phase, plan=outcome.plan,
             result_text=text if at_result else None, result_ok=outcome.success if at_result else None,
-            speed=speed, header_right=trial_label,
+            speed=speed, header_right=trial_label, vlm_label=label,
         )  # fmt: skip
         video.append(compose_frame(base, overlay, style))
     return outcome
 
 
-def summary_lines(summary: Summary, lang: str) -> list[str]:
-    """【機能概要】: 最後の集計カードに出す行 (成功率、失敗の種類別の件数、検出誤差の平均) 🔵"""
+def summary_lines(summary: Summary, lang: str, vlm_label: str | None = None) -> list[str]:
+    """【機能概要】: 最後の集計カードに出す行 (成功率、失敗の種類別の件数、検出誤差の平均、VLM の表示) 🔵"""
     ja = lang == "ja"
     rate = "-" if summary.success_rate is None else f"{100 * summary.success_rate:.1f}%"
     lines = [f"{'成功率' if ja else 'Success rate'}: {rate} ({summary.n_success}/{summary.n_trials})"]
     lines += [f"{kind}: {count}" for kind, count in sorted(summary.by_failure.items(), key=lambda kv: (-kv[1], kv[0]))]
     if summary.mean_pick_error_mm is not None:
         lines.append(f"{'検出誤差 (平均)' if ja else 'Mean detection error'}: {summary.mean_pick_error_mm:.1f} mm")
+    if vlm_label:
+        lines.append(vlm_label)
     return lines
 

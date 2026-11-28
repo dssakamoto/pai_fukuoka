@@ -16,6 +16,7 @@ from so101_vlm.eval.video import (
     speed_label,
     stage_label,
     validate_speed,
+    vlm_label,
 )
 from so101_vlm.eval.visualize import PICK_COLOR, PLACE_COLOR
 from so101_vlm.vlm.schema import Detection, PlanResult
@@ -200,3 +201,33 @@ def test_summary_card():
     assert np.array_equal(card, compose_summary((H, W), ["Success rate: 70% (14/20)", "planning_failure: 3"], EN))
     with pytest.raises(ValueError):
         compose_summary((0, W), ["x"], EN)
+
+
+# --- VLM の表示 (oracle の偽の枠を、本物の VLM の検出と誤解させない) ---------------------------------------------
+def test_vlm_label_marks_oracle_as_simulated():
+    assert vlm_label("oracle", "ground-truth", "ja") == "VLM: oracle(擬似)"
+    assert vlm_label("oracle", "ground-truth", "en") == "VLM: oracle (simulated)"
+
+
+def test_vlm_label_for_a_real_provider_includes_the_model_when_known():
+    assert vlm_label("openai", "gpt-6-luna", "ja") == "VLM: openai / gpt-6-luna"
+    assert vlm_label("openai", "unknown", "en") == "VLM: openai"
+    assert vlm_label("openai", None, "en") == "VLM: openai"
+
+
+@pytest.mark.parametrize("provider", [None, "", 3])
+def test_vlm_label_is_none_without_a_provider(provider):
+    assert vlm_label(provider, "m", "ja") is None
+
+
+def test_the_header_shows_the_vlm_label_and_nothing_else_changes():
+    plain = compose_frame(_gray(), _overlay(), EN)
+    labelled = compose_frame(_gray(), _overlay(vlm_label="VLM: oracle (simulated)"), EN)
+    h = round(max(11, H // 20) * 1.3) * 2 + 6
+    assert not np.array_equal(plain[:h], labelled[:h])  # ヘッダの帯に文字が増える
+    assert np.array_equal(plain[h + 2 :], labelled[h + 2 :])  # 帯の外は変わらない
+
+
+def test_a_long_vlm_label_on_a_narrow_image_does_not_crash():
+    out = compose_frame(_gray(h=120, w=160), _overlay(vlm_label="VLM: " + "x" * 200), EN)
+    assert out.shape == (120, 160, 3)
