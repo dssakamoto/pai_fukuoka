@@ -300,7 +300,7 @@ TASK-0044 → TASK-0045
 ### タスク一覧
 
 - [ ] [TASK-0046: 提出動画の撮影・編集](TASK-0046.md) - 2h (DIRECT) 🟡 ← T-46
-- [ ] [TASK-0047: レポート執筆](TASK-0047.md) - 3h (DIRECT) 🟡 ← T-47
+- [ ] [TASK-0047: レポート執筆](TASK-0047.md) - 3h (DIRECT) 🟡 ← T-47 🟡 v1 の範囲で執筆済み (2026-11-29。docs/report.md。AC-08 の全項目と ROS 2 移植方針・macOS デバイス固定の方針を記載。v2 の比較表は v2 未実施のため無し。実機・v2・Anthropic/Gemini/Gemma の評価は『未実施/未評価』と明記。提出用動画の差し替えが残る)
 - [ ] [TASK-0048: コードの整理と秘密情報の確認](TASK-0048.md) - 1h (DIRECT) 🔵 ← T-48
 - [ ] [TASK-0049: 提出物の最終確認と提出](TASK-0049.md) - 0.5h (DIRECT) 🔵 ← T-49
 
