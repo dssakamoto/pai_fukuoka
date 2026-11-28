@@ -69,3 +69,32 @@ def test_nonexistent_colour_does_not_move_the_robot_and_shows_the_reason(script,
     assert "put the purple block into the box" in out and "動かしていません" in out
     assert "there is no purple block in the image" in out and "vlm_failure" in out
     assert "ロボットを動かしました" not in out
+
+
+# =============================================================== --box-xy (SGT-014)
+@pytest.mark.parametrize("argv", [["--box-xy", "0.9", "0.9"], ["--box-xy", "0.0", "0.0"], ["--box-xy", "nan", "0.15"]])
+def test_box_xy_outside_the_region_is_rejected_before_anything_runs(script, capsys, argv):
+    assert script.main(["--provider", "oracle", *argv]) == 2
+    err = capsys.readouterr().err
+    assert "引数・設定の誤り" in err and ("収まらず" in err or "数値" in err)
+
+
+def test_box_xy_needs_two_numbers(script):
+    with pytest.raises(SystemExit) as exc:
+        script.main(["--box-xy", "0.2"])
+    assert exc.value.code == 2
+
+
+def test_a_paid_run_with_box_xy_is_refused_without_confirmation(script, capsys, monkeypatch):
+    monkeypatch.setattr("sys.stdin.isatty", lambda: False, raising=False)
+    monkeypatch.setenv("OPENAI_API_KEY", "dummy-key")
+    code = script.main(["--provider", "openai", "--box-xy", "0.20", "0.15"])  # 確認 (--yes) が無い非対話の実行
+    captured = capsys.readouterr()
+    assert code == 2 and "--yes" in captured.err and "有料" in captured.out  # 目安は表示し、API は呼ばない
+
+
+@pytest.mark.render
+def test_oracle_trial_with_box_xy_follows_the_moved_box(script, capsys):
+    code = script.main(["--provider", "oracle", "--seed", "2", "--colour", "red", "--box-xy", "0.20", "0.15"])
+    out = capsys.readouterr().out
+    assert code in (0, 1) and "判定" in out  # 動かした箱で最後まで通る (成功・失敗は seed 次第)

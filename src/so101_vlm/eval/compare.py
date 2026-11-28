@@ -86,18 +86,19 @@ def _result(name, status, reason, records, model, reference, usage=None) -> Prov
     )  # fmt: skip
 
 
-def default_client_factory_for(calibration: Calibration | None = None) -> ClientFactoryFor:
+def default_client_factory_for(calibration: Calibration | None = None, box: object | None = None) -> ClientFactoryFor:
     """【機能概要】: プロバイダ名から、試行ごとの VlmClient を返すファクトリを作る関数を返す 🔵
 
     oracle は試行ごとに真値から作る。それ以外は create_client を 1 回だけ呼んで使い回す (キャッシュ・再試行の設定を共有)。
     キー未設定は MissingApiKeyError、実装未登録は NotImplementedError、未知のプロバイダは ValueError。
+    box: oracle の枠を作る箱の位置の指定 (run_trial に渡す scenario と同じ。省略時は既定の箱)。
     """
     cal = load_calibration() if calibration is None else calibration
     config = load_vlm_config()
 
     def factory_for(name: str) -> Callable[[int, str], object]:
         if name == "oracle":
-            return oracle_client_factory(cal)
+            return oracle_client_factory(cal, box)
         if name == "ollama":  # キーがない代わりに、起動とモデルの取得を確かめる。使えなければ「未評価」(0% と誤解させない)
             from so101_vlm.vlm.ollama_client import unavailable_reason
 

@@ -43,7 +43,7 @@
 - [x] [SGT-011: 障害物 geom をモデルから自動収集する](SGT-011.md) - 2h (TDD) 🔵 ✅ 実装済み (2026-11-22。CI で確認中。motion.yaml は明示の一覧のまま、`obstacle_geoms: auto` で自動に切り替えられる移行形)
 - [ ] [SGT-012: 箱位置の掃引(3x3 格子 x oracle)スクリプトを追加する](SGT-012.md) - 2h (DIRECT) 🟡 ✅ 完了 (2026-11-25。掃引を GitHub Actions(osmesa)で実行: 88/90 (98%)、全点で IK 失敗を除く成功率 90% 以上。結果は docs/notes/box-sweep.md。窓は x 0.18〜0.20、y 0.13〜0.18 と狭い)
 - [ ] [SGT-013: SCENE_SPEC の箱位置・作業範囲を削除し、再現性を最終確認する](SGT-013.md) - 2h (DIRECT) 🔵 ✅ 完了 (2026-11-28。SCENE_SPEC から box_center_xy・work_area を削除し、参照を切り替えた。CI 全件成功。oracle を GitHub Actions(osmesa)で再実行し、85.0% (17/20)・検出誤差 平均 7.9 / 中央値 7.8 mm・IK 2 / 把持 1 / 配置 0 が従来と完全に一致)
-- [ ] [SGT-014: 実 API(OpenAI)で箱位置を変えた再評価を確認する(任意)](SGT-014.md) - 1h (DIRECT) 🟡
+- [ ] [SGT-014: 実 API(OpenAI)で箱位置を変えた再評価を確認する(任意)](SGT-014.md) - 1h (DIRECT) 🟡 🟡 一部完了 (2026-11-28。--box-xy・範囲外の拒否・料金目安の表示と確認・api テストは実装済み。実 API の実行はユーザーの確認と API キーがある環境が必要で未実行)
 
 ### 依存関係
 
