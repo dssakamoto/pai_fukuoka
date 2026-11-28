@@ -8,6 +8,7 @@
 - 指示: `put the {colour} block into the box` ({colour} を色名に置き換える)
 - 成功率の基準: 70% 以上 (暫定目標)
 - 箱の位置: 全プロバイダで同じ (XML の既定位置に固定の `Fixed`)。箱の位置は試行ごとの `Scenario` で決まる設計 (SGT-005〜013) だが、この表は既定の `Fixed` で、従来の値から変わらない。箱位置を動かした結果は [box-sweep.md](box-sweep.md)
+- 再現確認 (2026-11-28、SGT-013): `SCENE_SPEC` から箱の位置を削除して `Scenario` に切り替えた後に、`run_eval.py --provider oracle --trials 20 --seed 0` を再実行し、oracle の行 (85.0%、検出誤差 平均 7.9 / 中央値 7.8 mm、IK 2 / 把持 1 / 配置 0) が従来と完全に一致することを確認した
 
 ## 比較表
 
