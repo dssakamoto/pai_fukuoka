@@ -42,7 +42,7 @@
 - [ ] [SGT-010: 箱位置の UniformXY 生成と到達可能性による棄却を実装する](SGT-010.md) - 3h (TDD) 🔵 ✅ 実装済み (2026-11-21。G1 は (b): 箱だけ領域で棄却。箱とブロックの間隔は block_gap 0.03。CI で確認中。下記「実測で分かったこと」参照)
 - [x] [SGT-011: 障害物 geom をモデルから自動収集する](SGT-011.md) - 2h (TDD) 🔵 ✅ 実装済み (2026-11-22。CI で確認中。motion.yaml は明示の一覧のまま、`obstacle_geoms: auto` で自動に切り替えられる移行形)
 - [ ] [SGT-012: 箱位置の掃引(3x3 格子 x oracle)スクリプトを追加する](SGT-012.md) - 2h (DIRECT) 🟡 ✅ 完了 (2026-11-25。掃引を GitHub Actions(osmesa)で実行: 88/90 (98%)、全点で IK 失敗を除く成功率 90% 以上。結果は docs/notes/box-sweep.md。窓は x 0.18〜0.20、y 0.13〜0.18 と狭い)
-- [ ] [SGT-013: SCENE_SPEC の箱位置・作業範囲を削除し、再現性を最終確認する](SGT-013.md) - 2h (DIRECT) 🔵
+- [ ] [SGT-013: SCENE_SPEC の箱位置・作業範囲を削除し、再現性を最終確認する](SGT-013.md) - 2h (DIRECT) 🔵 🟡 一部完了 (2026-11-28。SCENE_SPEC から box_center_xy・work_area を削除し、参照を切り替えた。oracle 85.0% (17/20) の再現確認は描画環境での実行待ち)
 - [ ] [SGT-014: 実 API(OpenAI)で箱位置を変えた再評価を確認する(任意)](SGT-014.md) - 1h (DIRECT) 🟡
 
 ### 依存関係

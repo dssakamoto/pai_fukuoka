@@ -1,4 +1,4 @@
-"""成功判定 judge_in_region / judge_in_box (TASK-0013 の最小版。TASK-0015 で正式化。SGT-004 で領域基準に)。
+"""成功判定 judge_in_region (TASK-0013 の最小版。TASK-0015 で正式化。SGT-004 で領域基準にし、SGT-013 で互換の judge_in_box を削除)。
 
 🔵 design.md 6 節の配置、FR-07 の 3 条件に基づく。純粋関数 (入力を変更しない、乱数・時計を使わない)。
 (1) ブロック中心が箱の内寸の内側、(2) 中心が縁の高さ未満、(3) 並進の速さがしきい値以下。
@@ -12,7 +12,6 @@ import numpy as np
 
 from so101_vlm.eval.eval_config import JudgeConfig
 from so101_vlm.eval.geometry import PlaceRegion
-from so101_vlm.eval.scene_spec import SCENE_SPEC, SceneSpec
 from so101_vlm.safety._validation import as_vector
 
 _N_AXES = 3
@@ -71,24 +70,3 @@ def judge_in_region(
     if not speed <= config.speed_max_mps:
         reasons.append(JudgeReason.MOVING)
     return JudgeResult(not reasons, tuple(reasons), (dx, dy), float(pos[2]), speed)
-
-
-def judge_in_box(
-    centre: object,
-    linear_velocity: object,
-    config: JudgeConfig,
-    spec: SceneSpec = SCENE_SPEC,
-) -> JudgeResult:
-    """【機能概要】: 互換の別名。spec の箱 (既定の位置) を領域にして judge_in_region を呼ぶ 🟡
-
-    箱を動かす試行では judge_in_region に、その試行の PlaceRegion を渡す。
-    """
-    if not isinstance(config, JudgeConfig):  # region の組み立て (PlaceRegion の検証) より先に config を検査する
-        raise ValueError(f"config は JudgeConfig で指定してください: {config!r}")
-    region = PlaceRegion(
-        center_xy=spec.box_center_xy,
-        inner_half_size=spec.box_inner_half_size,
-        rim_z=spec.box_rim_z,
-        floor_top_z=spec.box_floor_top_z,
-    )
-    return judge_in_region(centre, linear_velocity, config, region)

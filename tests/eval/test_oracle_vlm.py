@@ -3,6 +3,7 @@
 import numpy as np
 import pytest
 
+from so101_vlm.eval.geometry import get_geometry
 from so101_vlm.eval.layout import sample_layout
 from so101_vlm.eval.oracle_vlm import OracleVlm
 from so101_vlm.eval.scene_spec import SCENE_SPEC
@@ -43,7 +44,7 @@ def test_box_is_larger_than_the_block_and_place_contains_box_centre():
     pw = r.pick.bbox_px[2] - r.pick.bbox_px[0]
     bw = r.place.bbox_px[2] - r.place.bbox_px[0]
     assert bw > pw
-    u, v = _pixel((*SCENE_SPEC.box_center_xy, SCENE_SPEC.box_floor_top_z))
+    u, v = _pixel((*get_geometry().box_default_xy, SCENE_SPEC.box_floor_top_z))
     x1, y1, x2, y2 = r.place.bbox_px
     assert x1 <= u <= x2 and y1 <= v <= y2
     assert r.place.label == "box"

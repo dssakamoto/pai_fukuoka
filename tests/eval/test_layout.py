@@ -13,6 +13,7 @@ import time
 import numpy as np
 import pytest
 
+from so101_vlm.eval.validation import BLOCK_AREA_X, BLOCK_AREA_Y
 from so101_vlm.eval.eval_config import load_eval_config
 from so101_vlm.eval.layout import sample_layout
 from so101_vlm.eval.scene_spec import SCENE_SPEC
@@ -22,10 +23,10 @@ EPS = 1e-9
 SWEEP_SEEDS = range(100)
 TRIAL_SEEDS = range(20)
 
-_X_LO, _X_HI = SCENE_SPEC.work_area_x
-_Y_LO, _Y_HI = SCENE_SPEC.work_area_y
-CX = sum(SCENE_SPEC.work_area_x) / 2
-CY = sum(SCENE_SPEC.work_area_y) / 2
+_X_LO, _X_HI = BLOCK_AREA_X
+_Y_LO, _Y_HI = BLOCK_AREA_Y
+CX = sum(BLOCK_AREA_X) / 2
+CY = sum(BLOCK_AREA_Y) / 2
 WIDTH_MIN = min(_X_HI - _X_LO, _Y_HI - _Y_LO)
 
 

@@ -13,13 +13,14 @@ import mujoco
 import numpy as np
 import pytest
 
+from so101_vlm.eval.geometry import get_geometry
 from so101_vlm.eval.scene_spec import SCENE_SPEC
 from so101_vlm.policy.ik import solve_ik
 from so101_vlm.robot.model_paths import JOINT_NAMES, PICKPLACE_SCENE_PATH
 
 POS_TOL_TEST_M = 0.002
 MAX_SURVEY_PITCH_CANDIDATE_DEG = 30.0
-BOX_X, BOX_Y = SCENE_SPEC.box_center_xy
+BOX_X, BOX_Y = get_geometry().box_default_xy
 
 SURVEY_POINTS = {
     "pregrasp_center_high": (0.25, 0.00, 0.14),

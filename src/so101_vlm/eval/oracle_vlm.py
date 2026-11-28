@@ -10,7 +10,7 @@ from itertools import product
 
 import numpy as np
 
-from so101_vlm.eval.geometry import PlaceRegion
+from so101_vlm.eval.geometry import PlaceRegion, get_geometry
 from so101_vlm.eval.scene_spec import SCENE_SPEC, SceneSpec
 from so101_vlm.perception.calibration import Calibration
 from so101_vlm.perception.projection import project_base_to_pixel
@@ -46,11 +46,8 @@ class OracleVlm:
         x, y = layout[_COLOURS.index(colour)]
         half = spec.block_half_size
         self._pick_corners = _corners(x, y, half, spec.block_rest_z - half, spec.block_rest_z + half)
-        if place_region is None:  # 省略時は spec の箱 (既定の位置)
-            place_region = PlaceRegion(
-                center_xy=spec.box_center_xy, inner_half_size=spec.box_inner_half_size,
-                rim_z=spec.box_rim_z, floor_top_z=spec.box_floor_top_z,
-            )  # fmt: skip
+        if place_region is None:  # 省略時は既定の箱 (XML の位置)
+            place_region = get_geometry().place_region()
         elif not isinstance(place_region, PlaceRegion):
             raise ValueError(f"place_region は PlaceRegion で指定してください: {place_region!r}")
         bx, by = place_region.center_xy

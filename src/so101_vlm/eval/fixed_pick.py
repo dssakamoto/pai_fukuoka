@@ -18,7 +18,7 @@ from so101_vlm.eval.eval_config import EvalConfig, load_eval_config
 from so101_vlm.eval.failure import FailureKind, PickTrace, classify_failure
 from so101_vlm.eval.geometry import PlaceRegion, get_geometry
 from so101_vlm.eval.ground_truth import GroundTruth
-from so101_vlm.eval.judge import JudgeResult, judge_in_box, judge_in_region
+from so101_vlm.eval.judge import JudgeResult, judge_in_region
 from so101_vlm.eval.pick_tracker import PickTracker, block_linear_velocity
 from so101_vlm.eval.scenario import Scenario, apply_scenario, scenario_for
 from so101_vlm.eval.scene_spec import SCENE_SPEC
@@ -130,7 +130,7 @@ def _judge_block(
     model: mujoco.MjModel, data: mujoco.MjData, body: str, eval_config: EvalConfig,
     region: PlaceRegion | None = None,
 ) -> JudgeResult:
-    """【機能概要】: 実行後のブロックを判定する 🔵
+    """【機能概要】: 実行後のブロックを判定する。region 省略時は既定の箱の領域 (従来どおり) 🔵
 
     【注意 (TASK-0015 へ引き継ぎ)】: data.xpos は mj_step が積分の前に計算した値なので、最後の mj_step の
     1 サブステップ分 (約 2 ms) だけ古い可能性がある。qvel は積分後の値。静止後は差が無視できるため
@@ -138,8 +138,7 @@ def _judge_block(
     """
     body_id = int(model.body(body).id)
     velocity = block_linear_velocity(model, data, body_id)
-    if region is None:  # 既定の箱 (従来どおり)
-        return judge_in_box(data.xpos[body_id], velocity, eval_config.judge)
+    region = get_geometry().place_region() if region is None else region
     return judge_in_region(data.xpos[body_id], velocity, eval_config.judge, region)
 
 

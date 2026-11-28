@@ -7,6 +7,7 @@
 - 対象の色: red, blue, green (この順に回す)
 - 指示: `put the {colour} block into the box` ({colour} を色名に置き換える)
 - 成功率の基準: 70% 以上 (暫定目標)
+- 箱の位置: 全プロバイダで同じ (XML の既定位置に固定の `Fixed`)。箱の位置は試行ごとの `Scenario` で決まる設計 (SGT-005〜013) だが、この表は既定の `Fixed` で、従来の値から変わらない。箱位置を動かした結果は [box-sweep.md](box-sweep.md)
 
 ## 比較表
 
